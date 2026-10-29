@@ -75,8 +75,8 @@ private fun searchResponseFilter(fragment: Class<*>, adapter: Class<*>): Method 
 // region 계속검색 자동 진행
 internal val autoContinueSearch = Patch(
     key = "auto_continue_search",
-    title = R.string.dcinside_auto_continue_search_title,
-    summary = R.string.dcinside_auto_continue_search_summary,
+    title = "검색 결과 자동으로 이어서 검색",
+    summary = "검색 결과 끝의 \"계속 검색\" 버튼을 누르지 않아도 목록 끝에 닿으면 다음 결과를 자동으로 불러옵니다.",
 ) {
     val adapter = searchAdapter()
     // 호스트 자체 클래스: 모듈은 androidx에 의존하지 않음.
@@ -142,8 +142,8 @@ private fun typedText(spinner: AdapterView<*>): String? {
 
 internal val searchByIdentifier = Patch(
     key = "search_by_identifier",
-    title = R.string.dcinside_search_by_identifier_title,
-    summary = R.string.dcinside_search_by_identifier_summary,
+    title = "식별코드·IP 검색",
+    summary = "검색 타입 셀렉트 박스의 식별코드·IP 항목을 고르거나 검색창에 id:식별코드, ip:IP를 입력하면 작성자 검색 뒤 그 사용자의 글만 남깁니다. 값은 부분 일치로 찾습니다. 식별코드는 식별코드 표시 기능이나 갤로그 주소에서, IP는 닉네임 옆의 값(보통 앞 두 자리)을 씁니다. ip: 뒤에는 띄어쓰기와 닉네임을 붙일 수 있고, 없으면 ㅇㅇ로 검색합니다. 디시 검색이 닉네임 기준이라 닉네임을 바꾼 옛 글은 찾지 못합니다.",
 ) {
     val fragment = searchFragment()
     val adapter = searchAdapter()
@@ -166,7 +166,7 @@ internal val searchByIdentifier = Patch(
     // 원래 항목을 넘는 위치는 어떤 P 상수에도 해당하지 않아 앱은 기본 타입을 유지하고,
     // 아래의 starter 훅이 그 선택을 식별자 검색으로 바꾼다.
     fun extended(arr: Array<String>): Array<String> =
-        arr + str(R.string.dcinside_id_search_menu) + str(R.string.dcinside_ip_search_menu)
+        arr + "식별코드" + "IP"
     val arrayCtor = ArrayAdapter::class.java.getDeclaredConstructor(
         Context::class.java, Int::class.javaPrimitiveType, Array<Any>::class.java
     )

@@ -20,8 +20,8 @@ internal fun serializedGetters(cls: Class<*>, name: String): List<Method> =
 
 private val disableUpdatePopup = Patch(
     key = "disable_update_popup",
-    title = R.string.dcinside_disable_update_popup_title,
-    summary = R.string.dcinside_disable_update_popup_summary,
+    title = "업데이트 권유 숨기기",
+    summary = "새 버전 업데이트를 권하는 팝업을 띄우지 않습니다.",
 ) {
     // 홈의 "스토어 버전이 더 최신인가(최근에 닫지 않았나)" 검사; 버전을 "\."로 분리.
     findMethod("update.is_newer") {
@@ -36,10 +36,10 @@ private val disableUpdatePopup = Patch(
 }
 
 val patchGroups = listOf(
-    PatchGroup(R.string.dcinside_group_ads, adPatches),
-    PatchGroup(R.string.dcinside_group_tracking, trackingPatches),
+    PatchGroup("광고", adPatches),
+    PatchGroup("추적 차단", trackingPatches),
     PatchGroup(
-        R.string.dcinside_group_features,
+        "기능",
         listOf(showIdentifier, showIpInfo, autoContinueSearch, searchByIdentifier, hideOfficialNotices, hidePageIndicators, disableUpdatePopup) + mediaPatches,
     ),
 )

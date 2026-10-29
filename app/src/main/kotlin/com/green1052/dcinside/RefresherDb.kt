@@ -84,13 +84,13 @@ private fun ipLookup(text: String): (String) -> String? {
     val lists = json.getJSONArray("lists").let { a -> List(a.length()) { ints(a.getJSONArray(it)) } }
     val metaCount = meta.size / 3
 
-    val vpnTag = str(R.string.dcinside_ip_vpn)
+    val vpnTag = "VPN"
     // 테이블 값마다 배지 하나를 한 번만 구성: "org1, org2, org3 외 N (tag)", tag = VPN 또는 첫 후보의 국가
     // (한국은 없음), 그 tag에 따라 색칠.
     fun badge(candidates: IntArray): String {
         val names = candidates.map { orgs[meta[it * 3]] }.filter { it.isNotEmpty() }.distinct()
         val top = names.take(3).joinToString(", ")
-        val shown = if (names.size > 3) str(R.string.dcinside_ip_more, top, names.size - 3) else top
+        val shown = if (names.size > 3) "$top 외 ${names.size - 3}" else top
         val first = candidates.first()
         val vpn = meta[first * 3 + 2] == 1
         val country = countries[meta[first * 3 + 1]]
@@ -132,8 +132,8 @@ private fun ipLookup(text: String): (String) -> String? {
 // region IP 정보
 internal val showIpInfo = Patch(
     key = "show_ip_info",
-    title = R.string.dcinside_show_ip_info_title,
-    summary = R.string.dcinside_show_ip_info_summary,
+    title = "유동 IP 정보 표시",
+    summary = "유동(비로그인) 작성자의 IP 옆에 VPN, 통신사 등 대역 정보를 표시합니다.",
 ) {
     // 모델의 IP getter가 아님: 5.3.6에선 이들이 사용자 메모 조회와 차단 목록에도 쓰임. 앱이 그리는 모든 "(ip)"
     // (게시글 목록, 검색, 게시글 헤더, 댓글, 더보기, 캡처)는 이름 줄 span 빌더(context, name, nickname, flag, ip,

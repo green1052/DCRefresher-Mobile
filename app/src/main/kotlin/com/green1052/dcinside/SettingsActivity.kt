@@ -8,7 +8,6 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -207,7 +206,7 @@ class SettingsActivity : ComponentActivity() {
                     // 필드는 입력값(공백 포함)을 유지, 필터는 양 끝을 무시.
                     val q = query.trim()
                     val groups = target.groups.mapNotNull { g ->
-                        val patches = g.patches.filter { q.isEmpty() || text(it.title).contains(q, true) || text(it.summary).contains(q, true) }
+                        val patches = g.patches.filter { q.isEmpty() || it.title.contains(q, true) || it.summary.contains(q, true) }
                         if (patches.isEmpty()) null else g to patches
                     }
                     if (groups.isEmpty()) item { Note(getString(R.string.settings_no_match, q)) }
@@ -311,7 +310,7 @@ class SettingsActivity : ComponentActivity() {
         val arrow by animateFloatAsState(if (open) 90f else 0f, label = "arrow")
         Card(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
             BasicComponent(
-                title = getString(group.title),
+                title = group.title,
                 summary = getString(R.string.settings_group_count, on, group.patches.size),
                 onClick = { if (!expanded.remove(id)) expanded += id },
                 onClickLabel = getString(if (open) R.string.settings_collapse else R.string.settings_expand),
@@ -334,8 +333,8 @@ class SettingsActivity : ComponentActivity() {
                 p.edit().putBoolean(patch.key, it).apply()
                 edits++
             },
-            title = getString(patch.title),
-            summary = text(patch.summary).ifEmpty { null },
+            title = patch.title,
+            summary = patch.summary.ifEmpty { null },
         )
         AnimatedVisibility(on && patch.options.isNotEmpty()) {
             // 더 어두운 밴드에 들여쓰기해 패치의 설정으로 읽히게 함.
@@ -353,7 +352,7 @@ class SettingsActivity : ComponentActivity() {
                                 p.edit().putBoolean(opt.key, it).apply()
                                 edits++
                             },
-                            title = getString(opt.title),
+                            title = opt.title,
                         )
                     }
                     is String -> {
@@ -367,16 +366,16 @@ class SettingsActivity : ComponentActivity() {
                             var picking by remember { mutableStateOf(false) }
                             val color = parseArgb(text, parseArgb(def, 0))
                             BasicComponent(
-                                title = getString(opt.title),
+                                title = opt.title,
                                 summary = hex(color),
                                 onClick = { picking = true },
                                 onClickLabel = getString(R.string.settings_pick_color),
                                 endActions = { Swatch(color) },
                             )
-                            if (picking) ColorPickerDialog(getString(opt.title), color, onDismiss = { picking = false }) { set(hex(it)) }
+                            if (picking) ColorPickerDialog(opt.title, color, onDismiss = { picking = false }) { set(hex(it)) }
                         } else {
                             Text(
-                                getString(opt.title),
+                                opt.title,
                                 Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 style = MiuixTheme.textStyles.footnote1,
@@ -418,9 +417,6 @@ class SettingsActivity : ComponentActivity() {
             )
         }
     }
-
-    /** [id]의 텍스트, 0(요약 없는 패치)이면 "". */
-    private fun text(@StringRes id: Int) = if (id == 0) "" else getString(id)
 
     @Composable
     private fun Note(text: String) {

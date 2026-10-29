@@ -60,7 +60,7 @@ class MainHook : XposedModule() {
         if (settingsChanged) endProcess(target)
         if (failed.isNotEmpty() && main) {
             Instrumentation::class.java.getMethod("callApplicationOnCreate", Application::class.java).after { chain, r ->
-                val titles = failed.joinToString("\n") { str(it) }
+                val titles = failed.joinToString("\n") { it }
                 Toast.makeText(chain.getArg(0) as Application, str(R.string.patch_failed, TAG, titles), Toast.LENGTH_LONG).show()
                 r
             }

@@ -15,13 +15,13 @@ import java.util.UUID
 // region 게시글 미디어
 private val readBody = ThreadLocal<Any?>()
 
-private val gifControls = Option("post_media_gif_controls", R.string.dcinside_opt_post_media_gif_controls, true)
-private val allowDownload = Option("post_media_allow_download", R.string.dcinside_opt_post_media_allow_download, true)
+private val gifControls = Option("post_media_gif_controls", "움짤을 재생 막대가 있는 동영상으로 바꾸기", true)
+private val allowDownload = Option("post_media_allow_download", "다운로드가 막힌 동영상 저장 허용", true)
 
 private val postMedia = Patch(
     key = "post_media",
-    title = R.string.dcinside_post_media_title,
-    summary = R.string.dcinside_post_media_summary,
+    title = "본문 움짤과 동영상 제어",
+    summary = "본문 움짤을 멈추고 넘겨 볼 수 있게 바꾸고, 다운로드가 막힌 동영상도 저장할 수 있게 합니다.",
     options = listOf(gifControls, allowDownload),
 ) {
     // DCAdblocker 방식: 앱이 파싱하기 전에 본문 HTML을 고쳐, 앱의 GIF 플레이어(탭하면 보이는 오버레이
@@ -74,16 +74,16 @@ internal fun postMediaHtml(html: String, gif: Boolean, download: Boolean): Strin
 // endregion
 
 // region 업로드
-internal val uploadWebp = Option("clean_uploads_webp", R.string.dcinside_opt_clean_uploads_webp, false)
-internal val uploadWebpQuality = Option("clean_uploads_webp_quality", R.string.dcinside_opt_clean_uploads_webp_quality, "80")
+internal val uploadWebp = Option("clean_uploads_webp", "사진을 WebP로 바꿔 올리기 (더 작아질 때만, 움짤과 WebP 제외)", false)
+internal val uploadWebpQuality = Option("clean_uploads_webp_quality", "WebP 품질 (10~100, 낮을수록 작고 흐림)", "80")
 
 /** 이 스레드에서 마지막 요청 본문을 만든 파일의 확장자; 파트의 파일명에 사용. */
 private val uploadExtension = ThreadLocal<String?>()
 
 private val cleanUploads = Patch(
     key = "clean_uploads",
-    title = R.string.dcinside_clean_uploads_title,
-    summary = R.string.dcinside_clean_uploads_summary,
+    title = "업로드 파일 정리",
+    summary = "글과 댓글에 올리는 파일 이름을 무작위로 바꾸고, 이미지, 동영상, 음성 파일에서 위치, 기기, 시각 등 메타데이터를 지웁니다. 사진 방향은 유지합니다.",
     options = listOf(uploadWebp, uploadWebpQuality),
 ) {
     val webpQuality = webpQuality()

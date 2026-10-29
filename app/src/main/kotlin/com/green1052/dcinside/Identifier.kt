@@ -21,14 +21,14 @@ import java.util.concurrent.Executors
 // region 식별자
 private val authorLine = ThreadLocal<Any?>()
 
-private val showBans = Option("show_identifier_bans", R.string.dcinside_opt_show_identifier_bans, true)
-private val showActivity = Option("show_identifier_activity", R.string.dcinside_opt_show_identifier_activity, true)
-private val lowActivity = Option("show_identifier_low_activity", R.string.dcinside_opt_show_identifier_low_activity, "100")
+private val showBans = Option("show_identifier_bans", "차단 갤러리 정보 표시", true)
+private val showActivity = Option("show_identifier_activity", "글댓비 표시 (작성자별로 조회해 다음 갱신 때 표시)", true)
+private val lowActivity = Option("show_identifier_low_activity", "깡계 기준 (글+댓글 수가 이 값 이하면 빨간색, 0이면 끔)", "100")
 
 internal val showIdentifier = Patch(
     key = "show_identifier",
-    title = R.string.dcinside_show_identifier_title,
-    summary = R.string.dcinside_show_identifier_summary,
+    title = "식별코드 표시",
+    summary = "고정닉과 반고정닉의 식별코드(아이디)를 글 목록, 검색 결과, 본문, 댓글의 닉네임 옆에 표시합니다.",
     options = listOf(showBans, showActivity, lowActivity),
 ) {
     // " (user_id)", 그리고 id가 밴 목록에 있는 갤러리들의 " [gallery, ...]", 마지막으로 " [posts/comments]".

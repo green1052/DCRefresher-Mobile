@@ -56,7 +56,7 @@ fun log(msg: String, t: Throwable? = null) {
 
 // region 패치 모델
 /** 패치 설정값. [color]가 true인 String 옵션은 색상 값을 담고([parseArgb] 형식) 색상 선택기를 얻음. */
-class Option<T : Any>(val key: String, @StringRes val title: Int, val default: T, val color: Boolean = false) {
+class Option<T : Any>(val key: String, val title: String, val default: T, val color: Boolean = false) {
     @Suppress("UNCHECKED_CAST")
     val value: T
         get() = when (default) {
@@ -83,8 +83,8 @@ fun parseArgb(input: String, fallback: Int): Int = runCatching {
 
 class Patch(
     val key: String,
-    @StringRes val title: Int,
-    @StringRes val summary: Int = 0,
+    val title: String,
+    val summary: String = "",
     val default: Boolean = true,
     val options: List<Option<*>> = emptyList(),
     val apply: () -> Unit,
@@ -101,7 +101,7 @@ class Patch(
 }
 
 /** 제목 달린 설정 화면 섹션. */
-class PatchGroup(@StringRes val title: Int, val patches: List<Patch>)
+class PatchGroup(val title: String, val patches: List<Patch>)
 
 // endregion
 

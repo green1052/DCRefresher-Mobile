@@ -28,8 +28,8 @@ private fun galleryPosts(handler: Method) = Dex.cached("notice.gallery_posts") {
 
 internal val hideOfficialNotices = Patch(
     key = "hide_official_notices",
-    title = R.string.dcinside_hide_official_notices_title,
-    summary = R.string.dcinside_hide_official_notices_summary,
+    title = "운영자 공지 숨기기",
+    summary = "갤러리와 미니 갤러리 공지에서 디시인사이드 운영자 공지를 숨깁니다.",
     default = false,
 ) {
     val postItem = "com.dcinside.app.response.PostItem".toClass()
@@ -58,8 +58,8 @@ internal val hideOfficialNotices = Patch(
 
 internal val hidePageIndicators = Patch(
     key = "hide_page_indicators",
-    title = R.string.dcinside_hide_page_indicators_title,
-    summary = R.string.dcinside_hide_page_indicators_summary,
+    title = "페이지 구분 표시 숨기기",
+    summary = "글 목록과 검색 결과의 'Page N' 구분 표시를 숨깁니다.",
     default = false,
 ) {
     val id = res("string", "post_section_text")
