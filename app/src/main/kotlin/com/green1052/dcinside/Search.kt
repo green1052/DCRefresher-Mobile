@@ -289,6 +289,7 @@ internal val searchByIdentifier = Patch(
                 gallogFetcher.execute {
                     val fetched = gallogNickname(value)
                     mainHandler.post {
+                        if (nicknames.size > 2000) nicknames.clear()
                         nicknames[value] = fetched ?: "" // 실패도 기억해 재시도 안 함
                         searchAs(fetched)
                         starter.invoke(frag, 1, true)

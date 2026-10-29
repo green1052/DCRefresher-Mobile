@@ -3,7 +3,7 @@ package com.green1052.dcinside
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
+import androidx.exifinterface.media.ExifInterface
 import android.os.Build
 import org.luckypray.dexkit.query.enums.StringMatchType
 import java.io.ByteArrayOutputStream
@@ -96,8 +96,11 @@ private val cleanUploads = Patch(
             usingStrings(listOf("UTF-8"), StringMatchType.Equals)
         }
     }.hook { chain ->
+        // 확장자를 항상 소진: 파일명 없는 파트가 다음 파트로 stale 값을 물고 가지 않게.
+        val carried = uploadExtension.get()
+        uploadExtension.remove()
         val name = chain.getArg(2) as? String ?: return@hook chain.proceed()
-        val ext = uploadExtension.get()?.also { uploadExtension.remove() } ?: name.substringAfterLast('.', "").lowercase()
+        val ext = carried ?: name.substringAfterLast('.', "").lowercase()
         chain.proceedWithArg(2, UUID.randomUUID().toString() + if (ext.isEmpty()) "" else ".$ext")
     }
 
