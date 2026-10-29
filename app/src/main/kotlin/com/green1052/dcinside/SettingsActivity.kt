@@ -67,7 +67,6 @@ import java.lang.ref.WeakReference
  * (MainHook 참고). Miuix(HyperOS 스타일 Compose 컴포넌트)로 그림.
  */
 class SettingsActivity : ComponentActivity() {
-    private val target = targets[0]
     private var query by mutableStateOf("")
     private val expanded = mutableStateListOf<String>()
     /** 서비스나 프리퍼런스 전체가 바뀔 때 증가, 여기서 읽는 모든 값을 다시 읽게 함. */
@@ -147,7 +146,7 @@ class SettingsActivity : ComponentActivity() {
     private fun refresh() {
         flushText()
         // 바인드 콜백과 이 호출 사이에 서비스가 죽을 수 있음.
-        prefs = runCatching { service?.getRemotePreferences(target.key) }.getOrNull()
+        prefs = runCatching { service?.getRemotePreferences(PREFS_KEY) }.getOrNull()
         revision++
     }
 
@@ -181,12 +180,12 @@ class SettingsActivity : ComponentActivity() {
                 } else {
                     // 필드는 입력값(공백 포함)을 유지, 필터는 양 끝을 무시.
                     val q = query.trim()
-                    val groups = target.groups.mapNotNull { g ->
+                    val groups = patchGroups.mapNotNull { g ->
                         val patches = g.patches.filter { q.isEmpty() || it.title.contains(q, true) || it.summary.contains(q, true) }
                         if (patches.isEmpty()) null else g to patches
                     }
                     if (groups.isEmpty()) item { Note(getString(R.string.settings_no_match, q)) }
-                    items(groups, key = { "${target.key}/${it.first.title}" }) { (group, patches) -> GroupCard(p, group, patches, rev) }
+                    items(groups, key = { it.first.title }) { (group, patches) -> GroupCard(p, group, patches, rev) }
                 }
                 item { Footer() }
             }
@@ -228,27 +227,26 @@ class SettingsActivity : ComponentActivity() {
     @Composable
     private fun AppCard(rev: Int) {
         val s = service ?: return
-        val t = target
-        val pkg = remember(rev, t) { runCatching { packageManager.getPackageInfo(t.packageName, 0) }.getOrNull() }
-        val inScope = remember(rev, t) { runCatching { t.packageName in s.scope }.getOrDefault(false) }
-        val running = remember(rev, t) { runCatching { s.runningTargets.any { it.processName == t.packageName } }.getOrDefault(false) }
+        val pkg = remember(rev) { runCatching { packageManager.getPackageInfo(TARGET_PACKAGE, 0) }.getOrNull() }
+        val inScope = remember(rev) { runCatching { TARGET_PACKAGE in s.scope }.getOrDefault(false) }
+        val running = remember(rev) { runCatching { s.runningTargets.any { it.processName == TARGET_PACKAGE } }.getOrDefault(false) }
         Card(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
             BasicComponent(
-                title = t.name,
+                title = TARGET_NAME,
                 summary = listOfNotNull(
                     pkg?.versionName?.let { getString(R.string.settings_version, it) } ?: getString(R.string.settings_not_installed),
                     getString(if (inScope) R.string.settings_in_scope else R.string.settings_not_in_scope),
                     getString(R.string.settings_running).takeIf { running },
                 ).joinToString(", ") + "\n" + getString(R.string.settings_restart_note),
                 startAction = {
-                    icon(t.packageName)?.let { Image(it, null, Modifier.padding(end = 14.dp).size(44.dp)) }
+                    icon(TARGET_PACKAGE)?.let { Image(it, null, Modifier.padding(end = 14.dp).size(44.dp)) }
                 },
                 endActions = { Dot(if (inScope) OK_COLOR else ERROR_COLOR) },
             )
             if (!inScope && pkg != null) Button(
                 onClick = {
                     // 사용자가 결정해야 응답이 오고, 그때 액티비티는 재생성되었거나 닫혀 있을 수 있음.
-                    s.requestScope(listOf(t.packageName), object : XposedService.OnScopeEventListener {
+                    s.requestScope(listOf(TARGET_PACKAGE), object : XposedService.OnScopeEventListener {
                         override fun onScopeRequestApproved(approved: List<String>) = onVisible { it.refresh() }
                         override fun onScopeRequestFailed(message: String) = onVisible { it.dialog = Dialog(it.getString(R.string.settings_scope_failed, message)) }
                     })
@@ -277,7 +275,7 @@ class SettingsActivity : ComponentActivity() {
     /** 그룹당 카드 하나: 헤더(켠 개수, 펼침 화살표) 뒤, 열렸거나 검색 중이면 그 패치들. */
     @Composable
     private fun GroupCard(p: SharedPreferences, group: PatchGroup, patches: List<Patch>, rev: Int) {
-        val id = "${target.key}/${group.title}"
+        val id = group.title
         val open = query.isNotBlank() || id in expanded
         val on = run {
             edits // 토글마다 재계산
@@ -359,14 +357,14 @@ class SettingsActivity : ComponentActivity() {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextButton(
                 getString(R.string.settings_app_info),
-                onClick = { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${target.packageName}"))) },
+                onClick = { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$TARGET_PACKAGE"))) },
                 modifier = Modifier.weight(1f),
             )
             TextButton(
                 getString(R.string.settings_reset),
                 onClick = {
                     val p = prefs ?: return@TextButton
-                    dialog = Dialog(getString(R.string.settings_reset_confirm, target.name), getString(R.string.settings_reset_action)) {
+                    dialog = Dialog(getString(R.string.settings_reset_confirm, TARGET_NAME), getString(R.string.settings_reset_action)) {
                         pendingText.clear()
                         // clear()가 아니라 키마다 remove: 리스너는 제거된 키를 전달받지만, clear()는 프레임워크에 따라
                         // null 키로 오거나 아예 안 옴.

@@ -16,8 +16,8 @@ import java.lang.reflect.Proxy
 
 /**
  * Xposed 없이 실제 base APK 대상으로 모든 패치(전부 켬) 설치: DexKit 조회와 리플렉션은 진짜, 훅은
- * 기록만. 각각 두 번 실행, 두 번째는 이후 실행처럼 DexKit 캐시만으로. cache/<target key>.apk에 APK가
- * 있는 대상을 검사, 예:
+ * 기록만. 각각 두 번 실행, 두 번째는 이후 실행처럼 DexKit 캐시만으로. cache/dcinside.apk에 APK를 넣어야
+ * 함, 예:
  *   adb push base.apk /data/local/tmp/dcinside.apk
  *   adb shell run-as com.green1052.dcinside cp /data/local/tmp/dcinside.apk cache/dcinside.apk
  */
@@ -31,42 +31,34 @@ class VerifyPatches {
         dataDir = ctx.cacheDir
 
         val failures = ArrayList<String>()
-        var checked = 0
-        for (target in targets) {
-            val apk = File(ctx.cacheDir, "${target.key}.apk").apply { setReadOnly() }
-            if (!apk.exists()) {
-                Log.i(TAG, "${target.key}: skipped, no ${apk.name}")
-                continue
-            }
-            checked++
-            classLoader = DexClassLoader(apk.path, ctx.codeCacheDir.path, null, ClassLoader.getSystemClassLoader().parent)
-            prefs = ctx.getSharedPreferences("verify_${target.key}", 0).apply {
-                edit().clear().also { e -> target.patches.forEach { e.putBoolean(it.key, true) } }.commit()
-            }
-            val cache = dexCacheFile(ctx.cacheDir, target).apply { delete() }
+        val apk = File(ctx.cacheDir, "$PREFS_KEY.apk").apply { setReadOnly() }
+        assertTrue("cache/dcinside.apk not found (see class docs)", apk.exists())
+        classLoader = DexClassLoader(apk.path, ctx.codeCacheDir.path, null, ClassLoader.getSystemClassLoader().parent)
+        prefs = ctx.getSharedPreferences("verify_$PREFS_KEY", 0).apply {
+            edit().clear().also { e -> allPatches.forEach { e.putBoolean(it.key, true) } }.commit()
+        }
+        val cache = dexCacheFile(ctx.cacheDir).apply { delete() }
 
-            // 콜드(DexKit 조회) 후 웜(캐시만).
-            for (run in listOf("cold", "warm")) {
-                var failed = 0
-                Dex.use(apk.path, cache) {
-                    for (patch in target.patches) {
-                        val before = hooks.size
-                        val error = runCatching(patch::install).exceptionOrNull()
-                        val line = "${target.key}.${patch.key} ($run): ${if (error == null) "OK, ${hooks.size - before} hooks" else "FAIL $error"}"
-                        Log.i(TAG, line)
-                        if (error != null) {
-                            Log.w(TAG, patch.key, error)
-                            failures += line
-                            failed++
-                        }
+        // 콜드(DexKit 조회) 후 웜(캐시만).
+        for (run in listOf("cold", "warm")) {
+            var failed = 0
+            Dex.use(apk.path, cache) {
+                for (patch in allPatches) {
+                    val before = hooks.size
+                    val error = runCatching(patch::install).exceptionOrNull()
+                    val line = "$PREFS_KEY.${patch.key} ($run): ${if (error == null) "OK, ${hooks.size - before} hooks" else "FAIL $error"}"
+                    Log.i(TAG, line)
+                    if (error != null) {
+                        Log.w(TAG, patch.key, error)
+                        failures += line
+                        failed++
                     }
                 }
-                // 웜 실행은 캐시만으로 처리되어야 함.
-                if (run == "warm" && Dex.opened) failures += "${target.key} (warm): DexKit opened, cache incomplete"
-                Log.i(TAG, "${target.key} ($run): ${target.patches.size - failed}/${target.patches.size} patches resolved")
             }
+            // 웜 실행은 캐시만으로 처리되어야 함.
+            if (run == "warm" && Dex.opened) failures += "$PREFS_KEY (warm): DexKit opened, cache incomplete"
+            Log.i(TAG, "$PREFS_KEY ($run): ${allPatches.size - failed}/${allPatches.size} patches resolved")
         }
-        assertTrue("no target APK in ${ctx.cacheDir}", checked > 0)
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 

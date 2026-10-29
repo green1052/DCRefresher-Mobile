@@ -8,16 +8,14 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import java.io.File
 
-/** 이 모듈이 패치하는 앱. [key]는 프리퍼런스 그룹과 DexKit 캐시의 이름. */
-class Target(val packageName: String, val name: String, val key: String, val groups: List<PatchGroup>) {
-    val patches: List<Patch> get() = groups.flatMap { it.patches }
-}
+/** 이 모듈이 패치하는 앱과, 원격 프리퍼런스 그룹·DexKit 캐시 이름. */
+const val TARGET_PACKAGE = "com.dcinside.app.android"
+const val TARGET_NAME = "디시인사이드"
+const val PREFS_KEY = "dcinside"
 
-val targets = listOf(
-    Target("com.dcinside.app.android", "디시인사이드", "dcinside", patchGroups),
-)
+val allPatches = patchGroups.flatMap { it.patches }
 
-fun dexCacheFile(dataDir: File, target: Target) = File(dataDir, "dcrefresher_${target.key}_dexkit.properties")
+fun dexCacheFile(dir: File) = File(dir, "dcrefresher_${PREFS_KEY}_dexkit.properties")
 
 class MainHook : XposedModule() {
     private var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
@@ -26,15 +24,15 @@ class MainHook : XposedModule() {
 
     override fun onPackageReady(param: PackageReadyParam) {
         if (!param.isFirstPackage) return
-        val target = targets.firstOrNull { it.packageName == param.packageName } ?: return
+        if (param.packageName != TARGET_PACKAGE) return
         xposed = this
         classLoader = param.classLoader
-        prefs = getRemotePreferences(target.key)
+        prefs = getRemotePreferences(PREFS_KEY)
 
         val info = param.applicationInfo
         dataDir = File(info.dataDir)
         // 패치는 앱의 모든 프로세스(푸시, 동기화, ...)에 적용, 토스트는 메인 프로세스에서만 표시.
-        val main = Application.getProcessName() == target.packageName
+        val main = Application.getProcessName() == TARGET_PACKAGE
         // 설정 변경 시(원격 프리퍼런스 리스너) 앱의 모든 프로세스가 스스로 종료되어, 다음 실행에서 모든 설정을
         // 처음부터 적용. 쓰기는 리스너 발동 전에 커밋되므로 유실 없음.
         // 필드로 유지: SharedPreferences는 리스너를 약하게 참조. 설치 전에 등록: 설치 중 변경(콜드 DexKit
@@ -43,31 +41,31 @@ class MainHook : XposedModule() {
         settingsChanged = false
         installFinished = false
         prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key != null && target.patches.none { key in it.keys }) return@OnSharedPreferenceChangeListener
-            if (installFinished) endProcess(target) else settingsChanged = true
+            if (key != null && allPatches.none { key in it.keys }) return@OnSharedPreferenceChangeListener
+            if (installFinished) endProcess() else settingsChanged = true
         }
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
-        val failed = Dex.use(info.sourceDir, dexCacheFile(dataDir, target)) {
-            target.patches.mapNotNull { patch ->
+        val failed = Dex.use(info.sourceDir, dexCacheFile(dataDir)) {
+            allPatches.mapNotNull { patch ->
                 runCatching(patch::install).exceptionOrNull()?.let {
-                    log("${target.key}: patch failed: ${patch.key}", it)
+                    log("$PREFS_KEY: patch failed: ${patch.key}", it)
                     patch.title
                 }
             }
         }
         installFinished = true
-        if (settingsChanged) endProcess(target)
+        if (settingsChanged) endProcess()
         if (failed.isNotEmpty() && main) {
             Instrumentation::class.java.getMethod("callApplicationOnCreate", Application::class.java).after { chain, r ->
-                val titles = failed.joinToString("\n") { it }
+                val titles = failed.joinToString("\n")
                 Toast.makeText(chain.getArg(0) as Application, str(R.string.patch_failed, TAG, titles), Toast.LENGTH_LONG).show()
                 r
             }
         }
     }
 
-    private fun endProcess(target: Target) {
-        log("${target.key}: settings changed, ending ${Application.getProcessName()}")
+    private fun endProcess() {
+        log("$PREFS_KEY: settings changed, ending ${Application.getProcessName()}")
         android.os.Process.killProcess(android.os.Process.myPid())
     }
 }
