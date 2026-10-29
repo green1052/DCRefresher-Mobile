@@ -5,7 +5,7 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 /** 앱의 R 클래스에서 가져온 리소스 id; R8이 필드 이름과 함께 남겨 둠. */
-internal fun res(type: String, name: String) = "com.dcinside.app.R\$$type".toClass().getField(name).getInt(null)
+internal fun res(type: String, name: String) = $$"com.dcinside.app.R$$$type".toClass().getField(name).getInt(null)
 
 /** [name]으로 직렬화되는 Gson 필드의 getter들(Kotlin 데이터 클래스는 두 개: getX와 componentN). */
 internal fun serializedGetters(cls: Class<*>, name: String): List<Method> =
