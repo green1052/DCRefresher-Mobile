@@ -116,6 +116,9 @@ private class Identifier(val kind: String, val value: String)
 /** id:/ip: 검색이 starter부터 응답 필터까지 실행되는 동안 설정됨; 일반 검색은 null. */
 @Volatile private var identifier: Identifier? = null
 
+/** 모듈이 searchAs 뒤에 다시 호출한 starter 실행: 메인 스레드에서만 쓰임. */
+private var resuming = false
+
 /** user_id -> 현재 닉네임, gallog에서 가져옴; 세션 동안 유지. */
 private val nicknames = ConcurrentHashMap<String, String>()
 
@@ -225,6 +228,9 @@ internal val searchByIdentifier = Patch(
     starter.hook { chain ->
         val frag = chain.thisObject
         if (frag == null || chain.getArg(0) != 1 || chain.getArg(1) != true) return@hook chain.proceed()
+        // 모듈이 다시 호출한 실행: searchAs가 키워드·타입·식별자를 이미 정했으므로 그대로 진행. 다시
+        // 해석하면 키워드 필드가 닉네임으로 바뀌어 스피너 기본 위치를 보고 identifier를 풀어버림.
+        if (resuming) { resuming = false; return@hook chain.proceed() }
 
         // 키워드 필드의 id:/ip: 접두사, 또는 이 패치가 타입 스피너에 추가한 식별코드/IP
         // 항목(이때는 입력한 텍스트 자체가 값).
@@ -292,6 +298,7 @@ internal val searchByIdentifier = Patch(
                         if (nicknames.size > 2000) nicknames.clear()
                         nicknames[value] = fetched ?: "" // 실패도 기억해 재시도 안 함
                         searchAs(fetched)
+                        resuming = true
                         starter.invoke(frag, 1, true)
                     }
                 }
