@@ -26,8 +26,8 @@ lateinit var dataDir: File
 
 private val currentApplication by lazy { Class.forName("android.app.ActivityThread").getMethod("currentApplication") }
 
-/** 호스트의 Application, 호스트가 만들기 전엔 null. */
-val appOrNull: Application? get() = currentApplication.invoke(null) as Application?
+/** 호스트의 Application, 호스트가 만들기 전엔 null. 숨김 API라 막히면 null (크래시 대신). */
+val appOrNull: Application? get() = runCatching { currentApplication.invoke(null) as Application? }.getOrNull()
 
 /** 호스트의 Application, 호스트가 생성된 후에만 유효. 즉 훅 콜백 안에서만. */
 val app: Application get() = appOrNull ?: error("the host Application is not created yet")
@@ -166,7 +166,7 @@ fun keepGone(types: List<Class<*>>): (Any?) -> Boolean {
             if (goneViews.any { it(view) }) chain.proceedWithArg(0, View.GONE) else chain.proceed()
         }
     }
-    goneViews = goneViews + matches
+    goneViews += matches
     return matches
 }
 
