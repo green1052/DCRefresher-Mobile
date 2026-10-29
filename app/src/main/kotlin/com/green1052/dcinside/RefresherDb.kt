@@ -26,7 +26,6 @@ private const val DB_URL = "https://dcrefresher.green1052.com"
 internal val dbLoader by lazy {
     thread {
         // 패치는 모든 프로세스에 적용됨; 작성자 행을 그리는 건 UI 프로세스(데이터 디렉터리와 같은 이름)뿐.
-        // ArcaLive의 IP 정보도 사용.
         if (Application.getProcessName() != dataDir.name) return@thread
         // 패치 설치 중, 호스트 Application이 생기기 전에 시작; 배지 라벨은 그 str()이 필요함.
         while (appOrNull == null) Thread.sleep(50)

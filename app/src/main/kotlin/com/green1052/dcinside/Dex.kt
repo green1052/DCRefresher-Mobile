@@ -2,7 +2,6 @@ package com.green1052.dcinside
 
 import android.os.Bundle
 import org.luckypray.dexkit.DexKitBridge
-import org.luckypray.dexkit.query.FindClass
 import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.result.MethodData
@@ -87,13 +86,7 @@ object Dex {
     }
 }
 
-/** [m]은 descriptor, Method 또는 Constructor. */
-fun DexKitBridge.methodData(m: Any): MethodData = when (m) {
-    is String -> getMethodData(m)
-    is Method -> getMethodData(m)
-    is Constructor<*> -> getMethodData(m)
-    else -> null
-} ?: error("no method data: $m")
+fun DexKitBridge.methodData(m: Method): MethodData = getMethodData(m) ?: error("no method data: $m")
 
 fun <T> List<T>.one(key: String): T =
     singleOrNull() ?: error("$key: expected 1 match, found $size ${take(4)}")
@@ -115,9 +108,6 @@ fun cachedLines(key: String, compute: DexKitBridge.() -> List<String>): List<Str
 fun findMethods(key: String, query: FindMethod.() -> Unit): List<Method> =
     cachedLines(key) { findMethod(query).map { it.descriptor } }.map { it.toMethod() }
 
-fun findClass(key: String, query: FindClass.() -> Unit): Class<*> =
-    Dex.cached(key) { findClass(query).one(key).name }.toClass()
-
 /** Firebase measurement의 수집 상태 메서드(0 = 활성)가 3을 반환하게 함, setAnalyticsCollectionEnabled(false) 이후처럼. */
 fun disableAnalyticsCollection(key: String) = findMethod(key) {
     matcher {
@@ -136,16 +126,6 @@ fun disableFirebaseLogEvent() {
                 it.parameterTypes.contentEquals(arrayOf(String::class.java, Bundle::class.java))
         }
     logEvent.replace(null)
-}
-
-/** Crashlytics 자동 수집 차단: isAutomaticDataCollectionEnabled가 false를 답해 저장된 리포트는 절대 전송되지 않음. 일부 앱에선 R8이 메서드를 리네임(쿠팡이츠 d()), 그럴 땐 유일한 synchronized boolean 시그니처로 폴백. */
-fun disableCrashlyticsCollection() {
-    val arbiter = "com.google.firebase.crashlytics.internal.common.DataCollectionArbiter".toClass()
-    val enabled = runCatching { arbiter.getMethod("isAutomaticDataCollectionEnabled") }.getOrNull()
-        ?: arbiter.declaredMethods.single {
-            it.parameterCount == 0 && it.returnType == Boolean::class.javaPrimitiveType && Modifier.isSynchronized(it.modifiers)
-        }
-    enabled.replace(false)
 }
 
 // endregion

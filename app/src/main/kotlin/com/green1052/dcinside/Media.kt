@@ -157,7 +157,7 @@ private fun toWebp(src: File, dir: File, quality: Int): File? {
     val head = ByteArray(8).also { h -> src.inputStream().use { it.read(h) } }
     val jpeg = head.u8(0) == 0xFF && head.u8(1) == 0xD8
     val png = String(head, Charsets.ISO_8859_1) == PNG_SIGNATURE
-    // 비디오(ArcaLive가 모든 업로드를 여기로 보냄)는 읽기 전에 거부.
+    // 내용이 JPEG/PNG가 아니면(이름뿐인 파일) 크기와 무관하게 읽기 전에 거부.
     if (!jpeg && !png || src.length() > MAX_IMAGE_BYTES) return null
     val data = src.readBytes()
     if (png && isApng(data)) return null
@@ -425,6 +425,5 @@ internal fun hideIsoMetadata(file: File): Boolean = RandomAccessFile(file, "rw")
 }
 
 // endregion
-
 
 internal val mediaPatches = listOf(postMedia, cleanUploads)
