@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
     implementation(libs.activity.compose)
+    implementation(libs.androidx.core.ktx)
 
     // Offline check of every patch against the real target APK, see VerifyPatches.
     // compileOnly isn't on the test classpath; the fake XposedInterface needs the API at run time.

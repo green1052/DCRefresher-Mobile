@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -138,7 +139,7 @@ class SettingsActivity : ComponentActivity() {
 
     private fun flushText() {
         val p = prefs
-        if (p != null && pendingText.isNotEmpty()) p.edit().also { e -> pendingText.forEach { (k, v) -> e.putString(k, v) } }.apply()
+        if (p != null && pendingText.isNotEmpty()) p.edit { pendingText.forEach { (k, v) -> putString(k, v) } }
         pendingText.clear()
     }
 
@@ -303,7 +304,7 @@ class SettingsActivity : ComponentActivity() {
         SwitchPreference(
             checked = on,
             onCheckedChange = {
-                p.edit().putBoolean(patch.key, it).apply()
+                p.edit { putBoolean(patch.key, it) }
                 edits++
             },
             title = patch.title,
@@ -322,7 +323,7 @@ class SettingsActivity : ComponentActivity() {
                         SwitchPreference(
                             checked = checked,
                             onCheckedChange = {
-                                p.edit().putBoolean(opt.key, it).apply()
+                                p.edit { putBoolean(opt.key, it) }
                                 edits++
                             },
                             title = opt.title,
@@ -367,7 +368,7 @@ class SettingsActivity : ComponentActivity() {
                         pendingText.clear()
                         // clear()가 아니라 키마다 remove: 리스너는 제거된 키를 전달받지만, clear()는 프레임워크에 따라
                         // null 키로 오거나 아예 안 옴.
-                        p.edit().also { e -> p.all.keys.forEach(e::remove) }.apply()
+                        p.edit { p.all.keys.forEach { remove(it) } }
                         revision++
                     }
                 },

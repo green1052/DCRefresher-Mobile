@@ -2,6 +2,7 @@ package com.green1052.dcinside
 
 import android.content.pm.ApplicationInfo
 import android.util.Log
+import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dalvik.system.DexClassLoader
@@ -35,7 +36,7 @@ class VerifyPatches {
         assertTrue("cache/dcinside.apk not found (see class docs)", apk.exists())
         classLoader = DexClassLoader(apk.path, ctx.codeCacheDir.path, null, ClassLoader.getSystemClassLoader().parent)
         prefs = ctx.getSharedPreferences("verify_$PREFS_KEY", 0).apply {
-            edit().clear().also { e -> allPatches.forEach { e.putBoolean(it.key, true) } }.commit()
+            edit(commit = true) { clear(); allPatches.forEach { putBoolean(it.key, true) } }
         }
         val cache = dexCacheFile(ctx.cacheDir).apply { delete() }
 
