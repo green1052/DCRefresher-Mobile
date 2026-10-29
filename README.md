@@ -19,7 +19,7 @@
 ## 구조
 
 ```
-app/src/main/kotlin/com/green1052/dcrefresher/mobile/
+app/src/main/kotlin/com/green1052/dcinside/
   MainHook.kt         진입점: 패키지 이름을 확인하고 그 앱의 패치를 적용
   Core.kt             패치 모델, 훅 DSL, 리플렉션 도우미, str()
   Dex.kt              DexKit 탐색과 APK별 캐시
@@ -61,3 +61,7 @@ adb logcat -d -s DCVerify
 `DcinsideMediaTest`는 업로드 메타데이터 제거, WebP 변환, 움짤 변환을 검사합니다. 훅이 의도대로 동작하는지는 기기에서 직접 확인해야 합니다.
 
 마지막 검증(패치 탐색 성공): 디시인사이드 5.3.20 16/16 (LSPatch로 실기 동작 확인).
+
+## 라이선스
+
+[GPL-3.0](LICENSE)
