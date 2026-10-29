@@ -157,7 +157,7 @@ internal val searchByIdentifier = Patch(
     val filter = searchResponseFilter(fragment, adapter)
     val gallList = serializedGetters(filter.parameterTypes[2], "gall_list").first()
     val typeP = "com.dcinside.app.type.P".toClass()
-    val nameType = typeP.enumConstants.first { (it as Enum<*>).name == "NAME" }!!
+    val nameType = typeP.enumConstants?.first { (it as Enum<*>).name == "NAME" }!!
     val typeField = fragment.declaredFields.first { it.type == typeP }.apply { isAccessible = true }
     val keywordFields = fragment.declaredFields.filter {
         !Modifier.isStatic(it.modifiers) && it.type == String::class.java
