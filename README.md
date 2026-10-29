@@ -25,7 +25,7 @@ app/src/main/kotlin/com/green1052/dcinside/
   Dex.kt              DexKit 탐색과 APK별 캐시
   Hosts.kt            DNS, WebView 호스트 차단 (광고, 추적 서버 차단 패치가 공유)
   SettingsActivity.kt 설정 화면 (Jetpack Compose + Miuix: 분류, 검색)
-  SettingsUi.kt       색상 선택기, 테마
+  SettingsUi.kt       테마
   Ads.kt              광고 차단, 광고·추적 서버 차단, 추적 SDK 비활성화
   Identifier.kt       식별코드·글댓비·차단 갤러리 배지
   Lists.kt            운영자 공지, 페이지 구분 숨기기
