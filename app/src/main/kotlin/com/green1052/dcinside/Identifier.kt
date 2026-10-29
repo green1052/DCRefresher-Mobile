@@ -117,7 +117,7 @@ internal val badgeColors = ConcurrentHashMap<String, Int>()
 internal fun badge(text: String, color: Int): String {
     if (badgeColors.size > 2000) badgeColors.clear()
     badgeColors[text] = color
-    return "⁨$text⁩"
+    return "\u2068$text\u2069"
 }
 
 private var badgesStyled = false

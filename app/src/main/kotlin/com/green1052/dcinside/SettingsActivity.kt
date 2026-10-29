@@ -32,7 +32,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -151,10 +150,10 @@ class SettingsActivity : ComponentActivity() {
     }
 
     /** 앱 아이콘, 미설치면 null, 실패는 캐시하지 않아 나중에 설치한 앱도 보임. */
-    private fun icon(pkg: String): ImageBitmap? {
-        icons[pkg]?.let { return it }
-        return runCatching { packageManager.getApplicationIcon(pkg).toBitmap().asImageBitmap() }
-            .getOrNull()?.also { icons[pkg] = it }
+    private fun icon(): ImageBitmap? {
+        icons[TARGET_PACKAGE]?.let { return it }
+        return runCatching { packageManager.getApplicationIcon(TARGET_PACKAGE).toBitmap().asImageBitmap() }
+            .getOrNull()?.also { icons[TARGET_PACKAGE] = it }
     }
 
     // region 화면
@@ -239,7 +238,7 @@ class SettingsActivity : ComponentActivity() {
                     getString(R.string.settings_running).takeIf { running },
                 ).joinToString(", ") + "\n" + getString(R.string.settings_restart_note),
                 startAction = {
-                    icon(TARGET_PACKAGE)?.let { Image(it, null, Modifier.padding(end = 14.dp).size(44.dp)) }
+                    icon()?.let { Image(it, null, Modifier.padding(end = 14.dp).size(44.dp)) }
                 },
                 endActions = { Dot(if (inScope) OK_COLOR else ERROR_COLOR) },
             )
