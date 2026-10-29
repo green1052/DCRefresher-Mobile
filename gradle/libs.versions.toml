@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 # The Compose compiler plugin ships with Kotlin; declaring it also sets the Kotlin version AGP builds with.
 kotlin = "2.4.21"
 # api and service are released together.
