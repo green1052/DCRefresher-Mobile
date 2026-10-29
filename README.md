@@ -35,7 +35,7 @@ app/src/main/kotlin/com/green1052/dcrefresher/mobile/
   Patches.kt          patchGroups (기능 분류)
 ```
 
-UI 문자열은 모두 `app/src/main/res/values/strings*.xml`에 있습니다. 대상 앱 안에서는 호스트 Application이 생성된 뒤 `str()`(`Core.kt`)로 읽으므로, 훅 콜백 안에서만 쓸 수 있습니다.
+패치 기능의 UI 문자열은 코드에 하드코딩되어 있고, 설정 화면 등 앱 자체 문자열만 `app/src/main/res/values/strings.xml`에 있습니다. 대상 앱 안에서는 호스트 Application이 생성된 뒤 `str()`(`Core.kt`)로 읽으므로, 훅 콜백 안에서만 쓸 수 있습니다.
 
 ## 빌드
 
