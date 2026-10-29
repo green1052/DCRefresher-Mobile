@@ -21,7 +21,7 @@ private fun galleryListHandler() = findMethod("notice.gallery_handler") {
 
 /** [handler]가 호출하는, 목록 응답의 게시글 getter. */
 private fun galleryPosts(handler: Method) = Dex.cached("notice.gallery_posts") {
-    methodData(handler).invokes.first {
+    methodData(handler).invokes.single {
         it.className.startsWith("com.dcinside.app.response.") && it.returnTypeName == "java.util.List" && it.paramCount == 0
     }.descriptor
 }.toMethod()
@@ -67,7 +67,7 @@ internal val hidePageIndicators = Patch(
     // "Page N" 텍스트(view_post_list_item_page의 유일하게 보이는 뷰)와 가시성을 설정; 이후 id로 숨기면
     // 해당 행만 접힘.
     val text = res("id", "post_list_item_page_text")
-    val holder = "androidx.recyclerview.widget.RecyclerView\$ViewHolder".toClass()
+    val holder = $$"androidx.recyclerview.widget.RecyclerView$ViewHolder".toClass()
     findMethods("page_indicator.binders") { matcher { usingNumbers(id) } }
         .ifEmpty { error("page_indicator.binders: no match") }
         .hookAll { chain ->

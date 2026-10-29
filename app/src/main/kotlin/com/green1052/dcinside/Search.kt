@@ -22,7 +22,7 @@ import java.util.concurrent.Executors
 private fun searchAdapter(): Class<*> = Dex.cached("search.adapter") {
     findMethod {
         matcher {
-            returnType("androidx.recyclerview.widget.RecyclerView\$ViewHolder")
+            returnType($$"androidx.recyclerview.widget.RecyclerView$ViewHolder")
             paramTypes("android.view.ViewGroup", "int")
             usingNumbers(res("layout", "view_search_more"))
             usingNumbers(res("layout", "view_serpos"))
@@ -80,7 +80,7 @@ internal val autoContinueSearch = Patch(
 ) {
     val adapter = searchAdapter()
     // 호스트 자체 클래스: 모듈은 androidx에 의존하지 않음.
-    val holder = "androidx.recyclerview.widget.RecyclerView\$ViewHolder".toClass()
+    val holder = $$"androidx.recyclerview.widget.RecyclerView$ViewHolder".toClass()
     val bind = adapter.declaredMethods.single {
         it.returnType == Void.TYPE && it.parameterTypes.contentEquals(arrayOf(holder, Int::class.javaPrimitiveType)) && !it.isBridge
     }
@@ -190,7 +190,7 @@ internal val searchByIdentifier = Patch(
         val arrays = typeArrays ?: resolveTypeArrays()?.also { typeArrays = it } ?: return@hook chain.proceed()
         // 스피너 상태 기록: 어댑터 앞부분이 search_type(_nc)으로 시작하면(확장 여부와 무관).
         val base = (chain.getArg(0) as? ArrayAdapter<*>)?.let { a ->
-            arrays.firstOrNull { arr -> a.count >= arr.size && (0 until arr.size).all { a.getItem(it) == arr[it] } }
+            arrays.firstOrNull { arr -> a.count >= arr.size && arr.indices.all { a.getItem(it) == arr[it] } }
         }
         if (spinner == null || base == null) return@hook chain.proceed()
         typeSpinner = WeakReference(spinner)

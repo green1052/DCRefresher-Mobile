@@ -61,7 +61,7 @@ internal val showIdentifier = Patch(
     // 게시글 헤더와 게시글/검색 목록 바인더: 이름을 읽고 헤더의 작성자 span 빌더
     // (TextView를 받는 Spannable 빌더)를 호출하는 모든 곳.
     cachedLines("identifier.author_lines") {
-        val span = methodData(header).invokes.first {
+        val span = methodData(header).invokes.single {
             it.returnTypeName == "android.text.Spannable" && it.paramTypeNames.firstOrNull() == "android.widget.TextView"
         }.descriptor
         nameGetters.values.flatten().flatMap { getter ->
@@ -200,7 +200,7 @@ private fun activityBadge(id: String, low: Int): String {
 
 private val recyclerView by lazy { "androidx.recyclerview.widget.RecyclerView".toClass() }
 private val getAdapter by lazy { recyclerView.getMethod("getAdapter") }
-private val adapterType by lazy { "androidx.recyclerview.widget.RecyclerView\$Adapter".toClass() }
+private val adapterType by lazy { $$"androidx.recyclerview.widget.RecyclerView$Adapter".toClass() }
 private val getItemCount by lazy { adapterType.getMethod("getItemCount") }
 private val notifyItemRangeChanged by lazy {
     adapterType.getMethod("notifyItemRangeChanged", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)

@@ -407,16 +407,20 @@ internal fun hideIsoMetadata(file: File): Boolean = RandomAccessFile(file, "rw")
             } else if (size == 0L) size = end - p
             // p + size > end가 아닌 이유: 거대한 64비트 크기에서 오버플로 남.
             if (size < header || size > end - p) return false
-            if (type in ISO_METADATA) {
-                raf.seek(p + 4)
-                raf.write("free".toByteArray())
-            } else if (type in ISO_TIMED) {
-                raf.seek(p + header)
-                val times = if (raf.read() == 1) 16 else 8
-                if (size < header + 4 + times) return false
-                raf.seek(p + header + 4)
-                raf.write(ByteArray(times))
-            } else if (type in ISO_CONTAINERS && !walk(p + header, p + size)) return false
+            when (type) {
+                in ISO_METADATA -> {
+                    raf.seek(p + 4)
+                    raf.write("free".toByteArray())
+                }
+                in ISO_TIMED -> {
+                    raf.seek(p + header)
+                    val times = if (raf.read() == 1) 16 else 8
+                    if (size < header + 4 + times) return false
+                    raf.seek(p + header + 4)
+                    raf.write(ByteArray(times))
+                }
+                in ISO_CONTAINERS if !walk(p + header, p + size) -> return false
+            }
             p += size
         }
         return true
