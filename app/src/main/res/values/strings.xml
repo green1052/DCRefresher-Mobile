@@ -2,8 +2,6 @@
     <string name="app_name">DCRefresher</string>
     <string name="app_description">디시인사이드 광고·추적 차단과 편의 기능</string>
 
-    <string name="target_dcinside">디시인사이드</string>
-
     <string name="patch_failed">%1$s 적용 실패:\n%2$s</string>
     <string name="ok">확인</string>
     <string name="cancel">취소</string>
@@ -25,7 +23,6 @@
     <string name="settings_group_count">%1$d/%2$d 켜짐</string>
     <string name="settings_collapse">접기</string>
     <string name="settings_expand">펼치기</string>
-    <string name="settings_pick_color">색 고르기</string>
     <string name="settings_app_info">앱 정보 (강제 종료)</string>
     <string name="settings_reset">기본값으로</string>
     <string name="settings_reset_confirm">%1$s의 모든 기능과 옵션을 기본값으로 되돌릴까요?</string>

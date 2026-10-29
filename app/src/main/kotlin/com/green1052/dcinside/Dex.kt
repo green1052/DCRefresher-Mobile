@@ -6,12 +6,10 @@ import org.luckypray.dexkit.query.FindClass
 import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.result.MethodData
-import org.luckypray.dexkit.wrap.DexField
 import org.luckypray.dexkit.wrap.DexMethod
 import java.io.File
 import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
-import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.Properties
@@ -100,14 +98,9 @@ fun DexKitBridge.methodData(m: Any): MethodData = when (m) {
 fun <T> List<T>.one(key: String): T =
     singleOrNull() ?: error("$key: expected 1 match, found $size ${take(4)}")
 
-/** Morphe는 DexKit이 여러 개를 반환할 때 dex 순(클래스, 이름)의 첫 매치를 취함. */
-fun List<MethodData>.firstInDex(key: String): MethodData =
-    minWithOrNull(compareBy({ it.className }, { it.name })) ?: error("$key: no match")
-
 fun String.toMethod(): Method = DexMethod(this).getMethodInstance(classLoader).apply { isAccessible = true }
 fun String.toConstructor(): Constructor<*> = DexMethod(this).getConstructorInstance(classLoader).apply { isAccessible = true }
 fun String.toExecutable(): Executable = if (DexMethod(this).isConstructor) toConstructor() else toMethod()
-fun String.toField(): Field = DexField(this).getFieldInstance(classLoader).apply { isAccessible = true }
 
 fun findMethod(key: String, query: FindMethod.() -> Unit): Method =
     Dex.cached(key) { findMethod(query).one(key).descriptor }.toMethod()
@@ -153,14 +146,6 @@ fun disableCrashlyticsCollection() {
             it.parameterCount == 0 && it.returnType == Boolean::class.javaPrimitiveType && Modifier.isSynchronized(it.modifiers)
         }
     enabled.replace(false)
-}
-
-/** AppsFlyerLib의 유일한 구현체는 start/logEvent 이름을 유지, 둘 다 no-op. OneLink 딥링크가 이 콜백을 기다리므로 해당 호스트도 이 스위치에 속함. */
-fun disableAppsFlyer() {
-    val impl = findClass("appsflyer.impl") { matcher { superClass("com.appsflyer.AppsFlyerLib") } }
-    impl.declaredMethods.filter { it.name == "start" || it.name == "logEvent" }
-        .ifEmpty { error("AppsFlyer start/logEvent not found in $impl") }
-        .hookAll { null }
 }
 
 // endregion

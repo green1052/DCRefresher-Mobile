@@ -17,12 +17,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -42,7 +40,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
@@ -53,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -71,7 +67,7 @@ import java.lang.ref.WeakReference
  * (MainHook 참고). Miuix(HyperOS 스타일 Compose 컴포넌트)로 그림.
  */
 class SettingsActivity : ComponentActivity() {
-    private var target by mutableStateOf(targets[0])
+    private val target = targets[0]
     private var query by mutableStateOf("")
     private val expanded = mutableStateListOf<String>()
     /** 서비스나 프리퍼런스 전체가 바뀔 때 증가, 여기서 읽는 모든 값을 다시 읽게 함. */
@@ -91,7 +87,6 @@ class SettingsActivity : ComponentActivity() {
         // 헬퍼에 unregister가 없어 프로세스당 한 번만 등록하고, 보이는 액티비티로 전달.
         @Volatile private var service: XposedService? = null
         @Volatile private var current = WeakReference<SettingsActivity>(null)
-        private const val STATE_TARGET = "target"
         private const val STATE_QUERY = "query"
         private const val STATE_EXPANDED = "expanded"
         private val OK_COLOR = Color(0xFF30A46C)
@@ -123,7 +118,6 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         savedInstanceState?.let { s ->
-            targets.firstOrNull { it.key == s.getString(STATE_TARGET) }?.let { target = it }
             query = s.getString(STATE_QUERY).orEmpty()
             s.getStringArrayList(STATE_EXPANDED)?.let(expanded::addAll)
         }
@@ -135,7 +129,6 @@ class SettingsActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putString(STATE_TARGET, target.key)
         outState.putString(STATE_QUERY, query)
         outState.putStringArrayList(STATE_EXPANDED, ArrayList(expanded))
     }
@@ -156,12 +149,6 @@ class SettingsActivity : ComponentActivity() {
         // 바인드 콜백과 이 호출 사이에 서비스가 죽을 수 있음.
         prefs = runCatching { service?.getRemotePreferences(target.key) }.getOrNull()
         revision++
-    }
-
-    private fun select(t: Target) {
-        if (t == target) return
-        target = t
-        refresh()
     }
 
     /** 앱 아이콘, 미설치면 null, 실패는 캐시하지 않아 나중에 설치한 앱도 보임. */
@@ -187,17 +174,6 @@ class SettingsActivity : ComponentActivity() {
                 contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp),
             ) {
                 item { Status(rev) }
-                item {
-                    TabRow(
-                        tabs = targets.map { getString(it.name) },
-                        selectedTabIndex = targets.indexOf(target),
-                        onTabSelected = { select(targets[it]) },
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        // 스크롤 탭, 가장 긴 앱 이름(디시인사이드)이 들어갈 만큼 넓게.
-                        minWidth = 108.dp,
-                        maxWidth = 132.dp,
-                    )
-                }
                 item { AppCard(rev) }
                 item { SearchField() }
                 if (p == null) {
@@ -258,7 +234,7 @@ class SettingsActivity : ComponentActivity() {
         val running = remember(rev, t) { runCatching { s.runningTargets.any { it.processName == t.packageName } }.getOrDefault(false) }
         Card(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
             BasicComponent(
-                title = getString(t.name),
+                title = t.name,
                 summary = listOfNotNull(
                     pkg?.versionName?.let { getString(R.string.settings_version, it) } ?: getString(R.string.settings_not_installed),
                     getString(if (inScope) R.string.settings_in_scope else R.string.settings_not_in_scope),
@@ -357,36 +333,21 @@ class SettingsActivity : ComponentActivity() {
                     }
                     is String -> {
                         var text by remember(opt.key, rev) { mutableStateOf(pendingText[opt.key] ?: p.getString(opt.key, def).orEmpty()) }
-                        fun set(value: String) {
-                            text = value
-                            pendingText[opt.key] = value
-                        }
-                        if (opt.color) {
-                            // 색상: 스와치를 누르면 선택기가 열리고 정확한 값도 입력 가능.
-                            var picking by remember { mutableStateOf(false) }
-                            val color = parseArgb(text, parseArgb(def, 0))
-                            BasicComponent(
-                                title = opt.title,
-                                summary = hex(color),
-                                onClick = { picking = true },
-                                onClickLabel = getString(R.string.settings_pick_color),
-                                endActions = { Swatch(color) },
-                            )
-                            if (picking) ColorPickerDialog(opt.title, color, onDismiss = { picking = false }) { set(hex(it)) }
-                        } else {
-                            Text(
-                                opt.title,
-                                Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                style = MiuixTheme.textStyles.footnote1,
-                            )
-                            TextField(
-                                value = text,
-                                onValueChange = ::set,
-                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
-                                singleLine = true,
-                            )
-                        }
+                        Text(
+                            opt.title,
+                            Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            style = MiuixTheme.textStyles.footnote1,
+                        )
+                        TextField(
+                            value = text,
+                            onValueChange = {
+                                text = it
+                                pendingText[opt.key] = it
+                            },
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                            singleLine = true,
+                        )
                     }
                 }
             }
@@ -405,7 +366,7 @@ class SettingsActivity : ComponentActivity() {
                 getString(R.string.settings_reset),
                 onClick = {
                     val p = prefs ?: return@TextButton
-                    dialog = Dialog(getString(R.string.settings_reset_confirm, getString(target.name)), getString(R.string.settings_reset_action)) {
+                    dialog = Dialog(getString(R.string.settings_reset_confirm, target.name), getString(R.string.settings_reset_action)) {
                         pendingText.clear()
                         // clear()가 아니라 키마다 remove: 리스너는 제거된 키를 전달받지만, clear()는 프레임워크에 따라
                         // null 키로 오거나 아예 안 옴.

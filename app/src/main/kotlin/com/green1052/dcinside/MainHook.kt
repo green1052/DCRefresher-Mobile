@@ -4,18 +4,17 @@ import android.app.Application
 import android.app.Instrumentation
 import android.content.SharedPreferences
 import android.widget.Toast
-import androidx.annotation.StringRes
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import java.io.File
 
 /** 이 모듈이 패치하는 앱. [key]는 프리퍼런스 그룹과 DexKit 캐시의 이름. */
-class Target(val packageName: String, @StringRes val name: Int, val key: String, val groups: List<PatchGroup>) {
+class Target(val packageName: String, val name: String, val key: String, val groups: List<PatchGroup>) {
     val patches: List<Patch> get() = groups.flatMap { it.patches }
 }
 
 val targets = listOf(
-    Target("com.dcinside.app.android", R.string.target_dcinside, "dcinside", patchGroups),
+    Target("com.dcinside.app.android", "디시인사이드", "dcinside", patchGroups),
 )
 
 fun dexCacheFile(dataDir: File, target: Target) = File(dataDir, "dcrefresher_${target.key}_dexkit.properties")

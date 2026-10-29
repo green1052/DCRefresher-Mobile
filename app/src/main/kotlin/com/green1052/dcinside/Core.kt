@@ -1,7 +1,6 @@
 package com.green1052.dcinside
 
 import android.app.Application
-import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Resources
 import android.os.Handler
@@ -15,12 +14,8 @@ import io.github.libxposed.api.XposedInterface.ExceptionMode
 import java.io.File
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
-import java.lang.reflect.Modifier
 
 const val TAG = "DCRefresher"
-const val PUBLIC_FINAL = Modifier.PUBLIC or Modifier.FINAL
-const val PUBLIC_STATIC_FINAL = PUBLIC_FINAL or Modifier.STATIC
-const val COROUTINE_RESUME = "call to 'resume' before 'invoke' with coroutine"
 
 // MainHook(또는 검증 테스트)이 패치 대상 앱의 호스트 프로세스마다 한 번 설정.
 lateinit var xposed: XposedInterface
@@ -55,8 +50,8 @@ fun log(msg: String, t: Throwable? = null) {
 }
 
 // region 패치 모델
-/** 패치 설정값. [color]가 true인 String 옵션은 색상 값을 담고([parseArgb] 형식) 색상 선택기를 얻음. */
-class Option<T : Any>(val key: String, val title: String, val default: T, val color: Boolean = false) {
+/** 패치 설정값. */
+class Option<T : Any>(val key: String, val title: String, val default: T) {
     @Suppress("UNCHECKED_CAST")
     val value: T
         get() = when (default) {
@@ -65,21 +60,6 @@ class Option<T : Any>(val key: String, val title: String, val default: T, val co
             else -> error("unsupported option type")
         } as T
 }
-
-/** "#RRGGBB", "#AARRGGBB", "0xAARRGGBB" 또는 10진수 int를 ARGB로 파싱, 실패 시 [fallback]. */
-fun parseArgb(input: String, fallback: Int): Int = runCatching {
-    val t = input.trim().replace("_", "")
-    val v = when {
-        t.startsWith("#") -> t.substring(1).let { h ->
-            require(h.length == 6 || h.length == 8)
-            h.toLong(16) or (if (h.length == 6) 0xFF000000L else 0L)
-        }
-        t.startsWith("0x", true) -> t.substring(2).toLong(16)
-        t.startsWith("-0x", true) -> -t.substring(3).toLong(16)
-        else -> t.toLong()
-    }
-    (v and 0xFFFFFFFFL).toInt()
-}.getOrDefault(fallback)
 
 class Patch(
     val key: String,
@@ -129,67 +109,21 @@ fun Chain.proceedWithArg(index: Int, value: Any?): Any? =
 // region 리플렉션
 fun String.toClass(): Class<*> = classLoader.loadClass(this)
 
-fun Class<*>.fieldDeep(name: String): Field {
-    var c: Class<*>? = this
-    while (c != null) {
-        runCatching { return c.getDeclaredField(name).apply { isAccessible = true } }
-        c = c.superclass
-    }
-    throw NoSuchFieldException("$name in $this")
-}
-
-fun Any.getField(name: String): Any? = javaClass.fieldDeep(name).get(this)
-
-fun Any.call(name: String, vararg args: Any?): Any? {
-    var c: Class<*>? = javaClass
-    while (c != null) {
-        c.declaredMethods.firstOrNull { it.name == name && it.parameterCount == args.size }?.let {
-            it.isAccessible = true
-            return it.invoke(this, *args)
-        }
-        c = c.superclass
-    }
-    throw NoSuchMethodException("$name/${args.size} in $javaClass")
-}
-
 // endregion
 
 // region 호스트 도우미
-/** 호스트의 kotlin.Unit / kotlin.Pair, 모듈이 자체 stdlib을 껴안고 있어 클래스가 다름. */
-val hostUnit: Any by lazy { "kotlin.Unit".toClass().selfInstance() }
-
-private val hostPairCtor by lazy { "kotlin.Pair".toClass().getConstructor(Any::class.java, Any::class.java) }
-
-fun hostPair(first: Any?, second: Any?): Any = hostPairCtor.newInstance(first, second)
-
-/** Kotlin object의 싱글턴을 담는 자기 타입 static 필드, R8이 이름을 바꿔도 무관. 클래스 초기화하지 않음. */
-fun Class<*>.selfField(): Field =
-    declaredFields.first { Modifier.isStatic(it.modifiers) && it.type == this }.apply { isAccessible = true }
-
-fun Class<*>.selfInstance(): Any = selfField().get(null)!!
-
 val mainHandler by lazy { Handler(Looper.getMainLooper()) }
-
-fun Context.dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-
-/** JVM 기본 타입들의 DexKit 타입명("void" 제외). */
-val PRIMITIVES = setOf("boolean", "byte", "char", "short", "int", "long", "float", "double")
-
-/** JDK, Kotlin, Android 프레임워크 코드가 아님. */
-fun String.isAppClass() = LIBRARY_PREFIXES.none(::startsWith)
-
-private val LIBRARY_PREFIXES = listOf("java.", "javax.", "kotlin.", "android.", "androidx.")
 
 /** [m]이 실제로 callee를 호출하게 해 ART가 인라인한 작은 callee의 훅도 발동. 실패는 로그만. */
 fun deoptimize(m: Executable) {
     runCatching { xposed.deoptimize(m) }.onFailure { log("deoptimize $m failed", it) }
 }
 
-/** 이 메서드 실행 중 [local]이 [value]를 유지(기본: receiver, static이면 true), 안쪽 훅이 이 범위를 판별 가능. */
+/** 이 메서드 실행 중 [local]이 receiver(static이면 true)를 유지, 안쪽 훅이 이 범위를 판별 가능. */
 @Suppress("UNCHECKED_CAST")
-fun <T> Executable.scope(local: ThreadLocal<T>, value: (Chain) -> T = { (it.thisObject ?: true) as T }) = hook { chain ->
+fun <T> Executable.scope(local: ThreadLocal<T>) = hook { chain ->
     val prev = local.get()
-    local.set(value(chain))
+    local.set((chain.thisObject ?: true) as T)
     try {
         chain.proceed()
     } finally {
@@ -217,10 +151,10 @@ fun itemView(holder: Any): View {
 @Volatile private var goneViews = emptyArray<(Any?) -> Boolean>()
 private var goneHookInstalled = false
 
-/** [except]를 제외한 [types]의 모든 인스턴스를 GONE 유지, 인스턴스 판별 함수 반환. */
-fun keepGone(types: List<Class<*>>, except: Class<*>? = null): (Any?) -> Boolean {
+/** [types]의 모든 인스턴스를 GONE 유지, 인스턴스 판별 함수 반환. */
+fun keepGone(types: List<Class<*>>): (Any?) -> Boolean {
     val classes = types.toTypedArray()
-    val matches = { v: Any? -> classes.any { it.isInstance(v) } && except?.isInstance(v) != true }
+    val matches = { v: Any? -> classes.any { it.isInstance(v) } }
     // 인플레이션은 setVisibility를 거치지 않고 초기 가시성을 정하므로, 생성 직후 숨김.
     types.flatMap { it.declaredConstructors.asList() }.hookAll { chain ->
         chain.proceed().also { if (matches(chain.thisObject)) (chain.thisObject as View).visibility = View.GONE }
