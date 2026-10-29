@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.exifinterface)
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
     implementation(libs.dexkit)
