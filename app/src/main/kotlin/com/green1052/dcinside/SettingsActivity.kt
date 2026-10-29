@@ -2,7 +2,6 @@ package com.green1052.dcinside
 
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -41,6 +40,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -357,7 +357,7 @@ class SettingsActivity : ComponentActivity() {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextButton(
                 getString(R.string.settings_app_info),
-                onClick = { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$TARGET_PACKAGE"))) },
+                onClick = { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$TARGET_PACKAGE".toUri())) },
                 modifier = Modifier.weight(1f),
             )
             TextButton(

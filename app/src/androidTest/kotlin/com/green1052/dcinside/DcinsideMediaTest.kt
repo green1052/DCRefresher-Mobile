@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.ExifInterface
 import android.os.Build
+import androidx.core.graphics.createBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -23,7 +24,7 @@ class DcinsideMediaTest {
     private val dir = InstrumentationRegistry.getInstrumentation().targetContext.cacheDir
     private val out = File(dir, "upload_test_out")
     // 사진 같은 노이즈 패턴: 빈 비트맵은 PNG가 WebP보다 이미 작음.
-    private fun bitmap() = Bitmap.createBitmap(64, 32, Bitmap.Config.ARGB_8888).apply {
+    private fun bitmap() = createBitmap(64, 32).apply {
         val r = java.util.Random(1)
         for (x in 0 until width) for (y in 0 until height) setPixel(x, y, 0xFF000000.toInt() or r.nextInt(0xFFFFFF))
     }

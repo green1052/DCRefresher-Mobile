@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.core.graphics.createBitmap
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -19,7 +20,7 @@ internal fun AppTheme(content: @Composable () -> Unit) {
 internal fun Drawable.toBitmap(): Bitmap {
     val w = intrinsicWidth.takeIf { it > 0 } ?: 96
     val h = intrinsicHeight.takeIf { it > 0 } ?: 96
-    return Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { bitmap ->
+    return createBitmap(w, h).also { bitmap ->
         setBounds(0, 0, w, h)
         draw(Canvas(bitmap))
     }
