@@ -1,0 +1,7 @@
+<resources>
+    <!-- Only the window: the settings screen draws itself with Compose (Material 3). -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

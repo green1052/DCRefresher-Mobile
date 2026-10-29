@@ -1,0 +1,3 @@
+{
+    "extends": ["github>green1052/renovate-config"]
+}

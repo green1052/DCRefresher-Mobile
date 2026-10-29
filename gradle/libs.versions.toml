@@ -1,0 +1,29 @@
+[versions]
+agp = "9.4.1"
+# The Compose compiler plugin ships with Kotlin; declaring it also sets the Kotlin version AGP builds with.
+kotlin = "2.4.21"
+# api and service are released together.
+libxposed = "102.0.0"
+dexkit = "2.3.0"
+compose-bom = "2026.09.00"
+activity-compose = "1.13.0"
+# Built with Kotlin 2.4: needs a Kotlin at least that new.
+miuix = "0.9.4"
+androidx-test-runner = "1.7.0"
+androidx-test-junit = "1.3.0"
+
+[libraries]
+libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed" }
+libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed" }
+dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui", version.ref = "miuix" }
+miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference", version.ref = "miuix" }
+miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons", version.ref = "miuix" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
+androidx-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

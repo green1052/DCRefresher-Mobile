@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">DCRefresher</string>
+    <string name="app_description">디시인사이드 광고·추적 차단과 편의 기능</string>
+
+    <string name="target_dcinside">디시인사이드</string>
+
+    <string name="patch_failed">%1$s 적용 실패:\n%2$s</string>
+    <string name="ok">확인</string>
+    <string name="cancel">취소</string>
+
+    <string name="settings_no_service">Vector에 연결되지 않았습니다. Vector에서 이 모듈을 활성화했는지 확인하세요.</string>
+    <string name="settings_no_match">\'%1$s\'에 맞는 기능이 없습니다.</string>
+    <string name="settings_framework_connected">프레임워크 연결됨</string>
+    <string name="settings_framework_disconnected">프레임워크에 연결되지 않음</string>
+    <string name="settings_enable_module">Vector에서 이 모듈을 활성화하세요.</string>
+    <string name="settings_version">버전 %1$s</string>
+    <string name="settings_not_installed">설치되지 않음</string>
+    <string name="settings_in_scope">범위에 포함됨</string>
+    <string name="settings_not_in_scope">범위에 없음</string>
+    <string name="settings_running">실행 중</string>
+    <string name="settings_restart_note">설정을 바꾸면 실행 중인 앱이 종료되고, 다음 실행부터 적용됩니다.</string>
+    <string name="settings_scope_failed">범위 추가 실패: %1$s</string>
+    <string name="settings_add_scope">범위에 추가</string>
+    <string name="settings_search">기능 검색</string>
+    <string name="settings_group_count">%1$d/%2$d 켜짐</string>
+    <string name="settings_collapse">접기</string>
+    <string name="settings_expand">펼치기</string>
+    <string name="settings_pick_color">색 고르기</string>
+    <string name="settings_app_info">앱 정보 (강제 종료)</string>
+    <string name="settings_reset">기본값으로</string>
+    <string name="settings_reset_confirm">%1$s의 모든 기능과 옵션을 기본값으로 되돌릴까요?</string>
+    <string name="settings_reset_action">되돌리기</string>
+</resources>
