@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.green1052.dcrefresher.mobile"
+    namespace = "com.green1052.dcinside"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.green1052.dcrefresher.mobile"
+        applicationId = "com.green1052.dcinside"
         minSdk = 29
         targetSdk = 37
         versionCode = 1

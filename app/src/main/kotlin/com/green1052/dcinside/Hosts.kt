@@ -1,4 +1,4 @@
-package com.green1052.dcrefresher.mobile
+package com.green1052.dcinside
 
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse

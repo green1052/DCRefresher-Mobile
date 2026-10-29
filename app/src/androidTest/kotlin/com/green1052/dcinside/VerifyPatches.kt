@@ -1,4 +1,4 @@
-package com.green1052.dcrefresher.mobile
+package com.green1052.dcinside
 
 import android.content.pm.ApplicationInfo
 import android.util.Log
@@ -19,7 +19,7 @@ import java.lang.reflect.Proxy
  * 기록만. 각각 두 번 실행, 두 번째는 이후 실행처럼 DexKit 캐시만으로. cache/<target key>.apk에 APK가
  * 있는 대상을 검사, 예:
  *   adb push base.apk /data/local/tmp/dcinside.apk
- *   adb shell run-as com.green1052.dcrefresher.mobile cp /data/local/tmp/dcinside.apk cache/dcinside.apk
+ *   adb shell run-as com.green1052.dcinside cp /data/local/tmp/dcinside.apk cache/dcinside.apk
  */
 @RunWith(AndroidJUnit4::class)
 class VerifyPatches {
