@@ -36,11 +36,3 @@ app/src/main/kotlin/com/green1052/dcinside/
 ```
 
 패치 기능의 UI 문자열은 코드에 하드코딩되어 있고, 설정 화면 등 앱 자체 문자열만 `app/src/main/res/values/strings.xml`에 있습니다. 대상 앱 안에서는 호스트 Application이 생성된 뒤 `str()`(`Core.kt`)로 읽으므로, 훅 콜백 안에서만 쓸 수 있습니다.
-
-## 빌드
-
-```
-./gradlew :app:assembleRelease
-```
-
-JDK 17+와 Android SDK(compileSdk 37)가 필요합니다. release 빌드는 디버그 키로 서명되므로, 배포하려면 서명 설정을 추가하세요.
