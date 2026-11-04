@@ -44,18 +44,3 @@ app/src/main/kotlin/com/green1052/dcinside/
 ```
 
 JDK 17+와 Android SDK(compileSdk 37)가 필요합니다. release 빌드는 디버그 키로 서명되므로, 배포하려면 서명 설정을 추가하세요.
-
-## 실제 APK로 검증
-
-`app/src/androidTest/.../VerifyPatches.kt`는 Xposed 없이 실제 APK에 모든 패치를 켜고 설치합니다. DexKit 탐색과 리플렉션은 실제로 수행하고, 훅은 기록만 합니다. DexKit으로 한 번, 저장된 캐시만으로 한 번 설치해 이후 실행 경로까지 확인합니다.
-`cache/dcinside.apk`가 있을 때만 검사합니다. 앱이 업데이트되면 먼저 이것으로 깨진 패치를 찾으세요.
-
-```
-./gradlew :app:installDebug :app:installDebugAndroidTest
-adb push base.apk /data/local/tmp/dcinside.apk      # XAPK 안의 base APK
-adb shell run-as com.green1052.dcinside cp /data/local/tmp/dcinside.apk cache/dcinside.apk
-adb shell am instrument -w -e class com.green1052.dcinside.VerifyPatches com.green1052.dcinside.test/androidx.test.runner.AndroidJUnitRunner
-adb logcat -d -s DCVerify
-```
-
-`DcinsideMediaTest`는 업로드 메타데이터 제거, WebP 변환, 움짤 변환을 검사합니다. 훅이 의도대로 동작하는지는 기기에서 직접 확인해야 합니다.
