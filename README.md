@@ -12,7 +12,7 @@
 
 | 앱 | 패키지 | 분석 버전 |
 |---|---|---|
-| 디시인사이드 | `com.dcinside.app.android` | 5.3.6, 5.3.8, 5.3.12, 5.3.20 |
+| 디시인사이드 | `com.dcinside.app.android` | 5.3.6, 5.3.8, 5.3.12, 5.3.20, 5.3.21 |
 
 차단 갤러리와 유동 IP 정보는 [DCRefresher-Reborn](https://github.com/green1052/DCRefresher-Reborn/tree/data) DB에서 받아옵니다.
 
@@ -60,7 +60,7 @@ adb logcat -d -s DCVerify
 
 `DcinsideMediaTest`는 업로드 메타데이터 제거, WebP 변환, 움짤 변환을 검사합니다. 훅이 의도대로 동작하는지는 기기에서 직접 확인해야 합니다.
 
-마지막 검증(패치 탐색 성공): 디시인사이드 5.3.20 16/16 (LSPatch로 실기 동작 확인).
+마지막 검증(패치 탐색 성공): 디시인사이드 5.3.21 16/16 (5.3.21은 REA 정적 분석으로 앵커 확인).
 
 ## 라이선스
 

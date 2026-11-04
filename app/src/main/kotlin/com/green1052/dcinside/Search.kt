@@ -48,7 +48,7 @@ private fun searchStarter(fragment: Class<*>): Method = Dex.cached("search.start
             addInvoke {
                 paramCount(11)
                 paramTypes(
-                    "java.lang.String", "java.lang.String", "int", "com.dcinside.app.type.P", "java.lang.CharSequence",
+                    "java.lang.String", "java.lang.String", "int", "com.dcinside.app.type.S", "java.lang.CharSequence",
                     "java.lang.String", "com.dcinside.app.response.PostHead", "com.dcinside.app.type.B", "java.lang.String",
                     "com.dcinside.app.type.E", "java.lang.String",
                 )
@@ -156,9 +156,9 @@ internal val searchByIdentifier = Patch(
     val ip = serializedGetters(postItem, "ip").first()
     val filter = searchResponseFilter(fragment, adapter)
     val gallList = serializedGetters(filter.parameterTypes[2], "gall_list").first()
-    val typeP = "com.dcinside.app.type.P".toClass()
-    val nameType = typeP.enumConstants?.first { (it as Enum<*>).name == "NAME" }!!
-    val typeField = fragment.declaredFields.first { it.type == typeP }.apply { isAccessible = true }
+    val typeS = "com.dcinside.app.type.S".toClass()
+    val nameType = typeS.enumConstants?.first { (it as Enum<*>).name == "NAME" }!!
+    val typeField = fragment.declaredFields.first { it.type == typeS }.apply { isAccessible = true }
     val keywordFields = fragment.declaredFields.filter {
         !Modifier.isStatic(it.modifiers) && it.type == String::class.java
     }.onEach { it.isAccessible = true }
@@ -166,7 +166,7 @@ internal val searchByIdentifier = Patch(
     // 검색 타입 셀렉트 박스: 앱은 search_type(_nc) 배열로 ArrayAdapter를 만들어 타입 스피너와
     // 드롭다운을 채운다. 드롭다운 목록은 스피너 어댑터와 별개로 배열에서 직접 만들어지는 경우가
     // 있어(스피너 어댑터를 바꿔도 목록이 안 바뀜), 원천인 배열 생성 시점에 항목을 붙인다.
-    // 원래 항목을 넘는 위치는 어떤 P 상수에도 해당하지 않아 앱은 기본 타입을 유지하고,
+    // 원래 항목을 넘는 위치는 어떤 S 상수에도 해당하지 않아 앱은 기본 타입을 유지하고,
     // 아래의 starter 훅이 그 선택을 식별자 검색으로 바꾼다.
     fun extended(arr: Array<String>): Array<String> =
         arr + "식별코드" + "IP"
