@@ -1,7 +1,7 @@
 # DCRefresher-Mobile
 
 디시인사이드 안드로이드 앱의 광고와 추적을 막고 편의 기능을 더하는 Vector(LSPosed 계열)용 [libxposed API](https://github.com/JingMatrix/libxposed-api) 모듈입니다.
-대상 앱을 수정하지 않고 런타임에 훅을 겁니다. [GreenVector](https://github.com/green1052/GreenVector)의 디시인사이드 패치를 따로 뗀 저장소입니다.
+대상 앱을 수정하지 않고 런타임에 훅을 겁니다.
 
 - 패키지: `com.green1052.dcinside` (런처 아이콘 없음)
 - 설정: Vector 관리자의 모듈 설정 화면에서 기능을 켜고 끕니다. 값은 `dcinside` 그룹에 저장됩니다. 설정을 바꾸면 실행 중인 앱의 모든 프로세스가 종료되고, 다음 실행부터 새 설정이 적용됩니다.
