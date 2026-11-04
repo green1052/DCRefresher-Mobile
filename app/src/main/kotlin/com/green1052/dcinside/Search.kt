@@ -145,8 +145,8 @@ private fun typedText(spinner: AdapterView<*>): String? {
 
 internal val searchByIdentifier = Patch(
     key = "search_by_identifier",
-    title = "식별코드·IP 검색",
-    summary = "검색 타입 셀렉트 박스의 식별코드·IP 항목을 고르거나 검색창에 id:식별코드, ip:IP를 입력하면 작성자 검색 뒤 그 사용자의 글만 남깁니다. 값은 부분 일치로 찾습니다. 식별코드는 식별코드 표시 기능이나 갤로그 주소에서, IP는 닉네임 옆의 값(보통 앞 두 자리)을 씁니다. ip: 뒤에는 띄어쓰기와 닉네임을 붙일 수 있고, 없으면 ㅇㅇ로 검색합니다. 디시 검색이 닉네임 기준이라 닉네임을 바꾼 옛 글은 찾지 못합니다.",
+    title = "식별코드, IP 검색",
+    summary = "검색 타입 셀렉트 박스의 식별코드, IP 항목을 고르거나 검색창에 id:식별코드, ip:IP를 입력하면 작성자 검색 뒤 그 사용자의 글만 남깁니다. 값은 부분 일치로 찾습니다. 식별코드는 식별코드 표시 기능이나 갤로그 주소에서, IP는 닉네임 옆의 값(보통 앞 두 자리)을 씁니다. ip: 뒤에는 띄어쓰기와 닉네임을 붙일 수 있고, 없으면 ㅇㅇ로 검색합니다. 디시 검색이 닉네임 기준이라 닉네임을 바꾼 옛 글은 찾지 못합니다.",
 ) {
     val fragment = searchFragment()
     val adapter = searchAdapter()
