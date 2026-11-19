@@ -5,7 +5,7 @@ kotlin = "2.4.21"
 # api and service are released together.
 libxposed = "102.0.0"
 dexkit = "2.3.0"
-compose-bom = "2026.09.00"
+compose-bom = "2026.11.01"
 activity-compose = "1.13.0"
 # Built with Kotlin 2.4: needs a Kotlin at least that new.
 miuix = "0.9.4"
