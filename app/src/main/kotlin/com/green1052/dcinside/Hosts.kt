@@ -71,10 +71,4 @@ fun blockWebViewHosts(vararg overrides: Class<*>) {
     }
 }
 
-/** URL에 [parts] 중 하나가 포함된 WebView 요청도 빈 응답: 차단하면 안 되는 호스트의 광고 경로 처리용. */
-fun blockWebViewUrls(vararg parts: String) {
-    blockedUrlParts = blockedUrlParts + parts
-    blockWebViewHosts()
-}
-
 // endregion

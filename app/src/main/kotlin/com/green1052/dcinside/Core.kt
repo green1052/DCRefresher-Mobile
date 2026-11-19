@@ -23,6 +23,8 @@ lateinit var classLoader: ClassLoader
 lateinit var prefs: SharedPreferences
 /** 호스트의 데이터 디렉터리, 모듈 캐시용. */
 lateinit var dataDir: File
+/** 호스트 APK 경로, 설치 시점의 리소스 id 조회용. */
+lateinit var hostApk: String
 
 private val currentApplication by lazy { Class.forName("android.app.ActivityThread").getMethod("currentApplication") }
 
@@ -133,12 +135,13 @@ fun <T> Executable.scope(local: ThreadLocal<T>) = hook { chain ->
 
 private var itemViewField: Field? = null
 
-/** RecyclerView.ViewHolder.itemView, R8이 이름을 바꿀 수 있어 타입으로 탐색. */
+/** RecyclerView.ViewHolder.itemView. 5.3.25의 R8이 ViewHolder를 난독화해서, 상속 체인의 가장 깊은
+ *  클래스(ViewHolder 자체)의 유일한 View 필드로 탐색. */
 fun itemView(holder: Any): View {
     val f = itemViewField ?: generateSequence<Class<*>>(holder.javaClass) { it.superclass }
-        .filter { it.name.startsWith("androidx.recyclerview.widget.RecyclerView$") }
-        .flatMap { it.declaredFields.asSequence() }
-        .first { it.type == View::class.java }
+        .takeWhile { it != Any::class.java }
+        .last()
+        .declaredFields.first { it.type == View::class.java }
         .apply { isAccessible = true }
         .also { itemViewField = it }
     return f.get(holder) as View

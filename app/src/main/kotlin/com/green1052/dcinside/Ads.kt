@@ -7,8 +7,8 @@ import android.widget.LinearLayout
 import org.luckypray.dexkit.query.enums.StringMatchType
 import java.lang.reflect.Modifier
 
-// DCInside 5.3.6(OneStore 빌드: "is OneStore" 검사가 true로 하드코딩됨) 기준 분석. 전면 R8 난독화; 코드는
-// Remote Config 키, Kotlin 파라미터 이름 문자열, 레이아웃 때문에 남은 뷰 클래스와 R 클래스로 찾음.
+// DCInside 5.3.25 기준 분석. 전면 R8 난독화로 앱 패키지와 R 클래스가 사라짐; Remote Config 키와
+// 레이아웃 때문에 남은 뷰 클래스로 찾음. 광고는 AdMob 미디에이션 + 네이버 GFP로 재편됨.
 
 /** DCInside config 객체의 Remote Config getter: [key]를 읽는 유일한 메서드. */
 internal fun configGetter(key: String, type: String) = findMethod("config.$key") {
@@ -23,49 +23,27 @@ internal fun configGetter(key: String, type: String) = findMethod("config.$key")
 private val blockAds = Patch(
     key = "block_ads",
     title = "광고 차단",
-    summary = "홈, 글 목록, 본문, 댓글, 검색의 배너와 네이티브 광고, 네이버 파워링크를 불러오지 않고, 광고 SDK도 시작하지 않습니다.",
+    summary = "홈, 글 목록, 본문, 댓글, 검색의 배너와 네이티브 광고를 불러오지 않습니다.",
 ) {
-    // 광고 폭포수: AdConfig.selectAds(Remote Config list) -> AdSequence(loaders) -> 네트워크. 빈 선택은
-    // 앱 자체의 "설정된 광고 없음" 상태라 홈 피드에 광고 행이 추가되지 않음.
-    findMethod("ads.select_ads") {
+    // 광고 폭포수의 마스터 스위치: 5.3.25의 ad_configs(Remote Config). 반환 타입이 바뀌어도 무해하게
+    // 타입별 빈 값으로 치환. 빈 설정은 앱 자체의 "설정된 광고 없음" 상태라 홈 피드에 광고 행이 추가되지 않음.
+    val adConfigs = findMethod("ads.ad_configs") {
         matcher {
-            returnType("java.util.List")
-            paramTypes("java.util.List")
-            usingStrings(listOf("config"), StringMatchType.Equals)
-        }
-    }.hook { ArrayList<Any?>() }
-
-    // AdSequence(List<loader>, host)는 빈 리스트에서 즉시 반환됨. onCurrentLoadFailed 참조로 앵커링.
-    val sequence = findConstructor("ads.sequence") {
-        matcher {
-            name("<init>")
-            paramTypes("java.util.List", null)
-            addInvoke { usingStrings(listOf("onCurrentLoadFailed(Ljava/lang/String;)V"), StringMatchType.Equals) }
+            paramCount(0)
+            usingStrings(listOf("ad_configs"), StringMatchType.Equals)
         }
     }
-    sequence.hook { it.proceedWithArg(0, ArrayList<Any?>()) }
-
-    // 각 광고 슬롯 설정(AdSequence를 만드는 모든 곳)은 config를 읽기 전에 컨테이너를 보이고 50-250dp를
-    // 예약함; 건너뛰면 컨테이너는 레이아웃 선언대로 접힌 채 유지. 5.3.6: 게시글 목록 페이지 행과
-    // 퀵 배너, 본문 푸터(2), 좋아요 아래/댓글/이미지 광고 뷰, 네이버 검색 광고(2).
-    val sequenceClass = sequence.declaringClass.name
-    cachedLines("ads.slot_setups") {
-        findMethod { matcher { addInvoke { declaredClass(sequenceClass); name("<init>") } } }
-            .filter { it.isMethod && it.className != sequenceClass }
-            .map { it.descriptor }
-    }.map { it.toMethod() }
-        .onEach { check(it.returnType == Void.TYPE) { "ad slot setup returns ${it.returnType}: $it" } }
-        .ifEmpty { error("ads.slot_setups: no match") }
-        .hookAll { null }
-
-    // AdUtil.adInitialize(activity): HomeActivity의 AdMob + AdPie + AdMixer 부트스트랩.
-    findMethod("ads.initialize") {
-        matcher {
-            returnType("void")
-            paramTypes("androidx.appcompat.app.AppCompatActivity")
-            addInvoke("Lcom/gomfactory/adpie/sdk/AdPieSDK;->getInstance()Lcom/gomfactory/adpie/sdk/AdPieSDK;")
+    adConfigs.hook { chain ->
+        when (adConfigs.returnType) {
+            String::class.java -> ""
+            Boolean::class.javaPrimitiveType -> false
+            List::class.java -> ArrayList<Any?>()
+            else -> chain.proceed() // 파싱된 객체 등 알 수 없는 타입은 그대로 두고 DNS 차단에 맡김.
         }
-    }.replace(null)
+    }
+
+    // 상시 광고 스위치.
+    configGetter("_persistent_ad_enabled", "boolean").replace(false)
 
     // AdFit 배너, 생성되는 모든 위치.
     "com.kakao.adfit.ads.ba.BannerAdView".toClass().getMethod("loadAd").replace(null)
@@ -82,9 +60,6 @@ private val blockAds = Patch(
             if (chain.getArg(0) == postList && root is View) for (id in quickAdIds) root.findViewById<View>(id)?.visibility = View.GONE
             root
         }
-
-    // 게시글 페이지가 WebView 안에서 요청하는 네이버 광고.
-    blockWebViewUrls("app.dcinside.com/api/_naverad")
 }
 
 private val hideAdViews = Patch(
@@ -93,8 +68,13 @@ private val hideAdViews = Patch(
     summary = "본문 이미지 광고와, 댓글 위나 댓글 사이의 광고 자리를 숨깁니다.",
 ) {
     // 레이아웃용으로 이름이 남음; 광고 전용. 이미지 광고 뷰는 광고가 로드되지 않아도 생성자에서 250dp를 예약.
-    val isAd = keepGone(listOf("PostReadImageAdView", "PostReadCommentAdView", "PostReadCommentTopAdView")
-        .map { "com.dcinside.app.view.$it".toClass() })
+    // 5.3.25: PostReadCommentAdView가 Bottom/Center 둘로 분리됨.
+    val isAd = keepGone(
+        listOf(
+            "PostReadImageAdView", "PostReadCommentBottomAdView", "PostReadCommentCenterAdView",
+            "PostReadCommentTopAdView",
+        ).map { "com.dcinside.app.view.$it".toClass() }
+    )
     val int = Int::class.javaPrimitiveType
     // RecyclerView는 GONE 항목도 측정된 크기로 배치함. 셋 다 LinearLayout.
     LinearLayout::class.java.getDeclaredMethod("onMeasure", int, int).hook { chain ->
@@ -110,12 +90,13 @@ private val blockAdHosts = Patch(
     title = "광고 서버 차단",
     summary = "AdMob, AppLovin, Moloco, 카카오 애드핏, Cauly, AdMixer, AdPie 광고 서버 접속을 막습니다.",
 ) {
-    // 모두 5.3.6의 문자열에서 확인됨.
+    // 앱 dex에서 확인된 호스트들(5.3.25).
     blockHosts(
         listOf(
             "doubleclick.net", "googlesyndication.com", "googleadservices.com", "mobileads.google.com",
             "applovin.com", "applvn.com", "moloco.com", "adsmoloco.com",
             "ad.daum.net", "ds.kakao.com", "cauly.co.kr", "fsnsys.com", "admixer.co.kr", "adpies.com",
+            "ad.dcinside.com",
         )
     )
     // Chromium이 호스트를 직접 resolve함; 앱의 WebViewClient는 super를 호출.
@@ -158,15 +139,17 @@ private val disableCrashReports = Patch(
     summary = "Crashlytics 오류 보고와 앱 자체 오류 기록 전송을 끕니다.",
 ) {
     // DataCollectionArbiter.isAutomaticDataCollectionEnabled(): 유일한 public boolean getter.
+    // 5.3.25: 로그 문자열이 "Crashlytics automatic data collection "로 잘림(뒤의 포맷 인자 사라짐).
     findMethod("crashlytics.collection_enabled") {
         matcher {
-            declaredClass { addMethod { usingStrings(listOf("Crashlytics automatic data collection %s by %s."), StringMatchType.Equals) } }
+            declaredClass { addMethod { usingStrings(listOf("Crashlytics automatic data collection"), StringMatchType.StartsWith) } }
             modifiers(Modifier.PUBLIC)
             returnType("boolean")
             paramCount(0)
         }
     }.replace(false)
-    listOf("bus", "list", "read", "web").forEach { configGetter("report_crash_on_$it", "boolean").replace(false) }
+    // 5.3.25에서 report_crash_on_bus 키는 사라짐.
+    listOf("list", "read", "web").forEach { configGetter("report_crash_on_$it", "boolean").replace(false) }
 }
 
 private val disablePerformance = Patch(

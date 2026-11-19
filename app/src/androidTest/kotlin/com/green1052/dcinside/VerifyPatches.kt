@@ -38,6 +38,7 @@ class VerifyPatches {
         prefs = ctx.getSharedPreferences("verify_$PREFS_KEY", 0).apply {
             edit(commit = true) { clear(); allPatches.forEach { putBoolean(it.key, true) } }
         }
+        hostApk = apk.path
         val cache = dexCacheFile(ctx.cacheDir).apply { delete() }
 
         // 콜드(DexKit 조회) 후 웜(캐시만).

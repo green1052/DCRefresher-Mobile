@@ -22,7 +22,7 @@ import java.util.concurrent.Executors
 private fun searchAdapter(): Class<*> = Dex.cached("search.adapter") {
     findMethod {
         matcher {
-            returnType($$"androidx.recyclerview.widget.RecyclerView$ViewHolder")
+            name("onCreateViewHolder")
             paramTypes("android.view.ViewGroup", "int")
             usingNumbers(res("layout", "view_search_more"))
             usingNumbers(res("layout", "view_serpos"))
@@ -30,45 +30,41 @@ private fun searchAdapter(): Class<*> = Dex.cached("search.adapter") {
     }.one("search.adapter").className
 }.toClass()
 
-/** PostSearchFragment의 클래스: onCreate(프레임워크가 남긴 이름)가 수행하는 무인수 생성자. */
-private fun searchFragment(): Class<*> = Dex.cached("search.fragment") {
-    findMethod { matcher { declaredClass("com.dcinside.app.post.PostSearchActivity"); name("onCreate") } }
-        .flatMap { it.invokes }
-        .filter { it.isConstructor && it.paramCount == 0 && it.className.startsWith("com.dcinside.app.post.") }
-        .one("search.fragment").className
-}.toClass()
-
-/** 프래그먼트의 (page, refresh) 검색 시작점: 11파라미터 목록 요청을 호출하는 유일한 메서드. */
-private fun searchStarter(fragment: Class<*>): Method = Dex.cached("search.starter") {
-    findMethod {
-        matcher {
-            declaredClass(fragment.name)
-            returnType("void")
-            paramTypes("int", "boolean")
-            addInvoke {
-                paramCount(11)
-                paramTypes(
-                    "java.lang.String", "java.lang.String", "int", "com.dcinside.app.type.S", "java.lang.CharSequence",
-                    "java.lang.String", "com.dcinside.app.response.PostHead", "com.dcinside.app.type.B", "java.lang.String",
-                    "com.dcinside.app.type.E", "java.lang.String",
-                )
+/** 검색 시작점((page, refresh) void)과 그 클래스(검색 프래그먼트). 5.3.25: 목록 API의 enum 파라미터들이
+ *  루트 패키지로 난독화되어 타입 이름 없이 호출 시그니처로만 찾고, 프래그먼트는 androidx.fragment도
+ *  난독화되어 어댑터 타입 필드를 가진 시작점의 클래스로 식별. */
+private fun searchStarterWithFragment(adapter: Class<*>): Pair<Method, Class<*>> =
+    cachedLines("search.starter") {
+        findMethod {
+            matcher {
+                returnType("void")
+                paramTypes("int", "boolean")
+                addInvoke {
+                    paramCount(11)
+                    paramTypes(
+                        "java.lang.String", "java.lang.String", "int", null, "java.lang.CharSequence",
+                        "java.lang.String", "com.dcinside.app.response.PostHead", null, "java.lang.String",
+                        null, "java.lang.String",
+                    )
+                }
             }
-        }
-    }.one("search.starter").descriptor
-}.toMethod()
+        }.map { it.descriptor }
+    }.map { it.toMethod() }
+        .single { m -> m.declaringClass.declaredFields.any { it.type == adapter } }
+        .let { it to it.declaringClass }
 
-/** 프래그먼트의 static (adapter, galleryId, response) 표시 전 필터(차단 사용자); 호스트의 Unit을 반환.
- *  public synthetic 접근자가 같은 모양이라 private 본문을 매칭. */
-private fun searchResponseFilter(fragment: Class<*>, adapter: Class<*>): Method = Dex.cached("search.response_filter") {
+/** 검색 어댑터의 응답 진입(응답, ..., 검색 타입, 머리글): 첫 인자가 목록 응답(nj8). */
+private fun searchResponseFilter(adapter: Class<*>): Method = Dex.cached("search.response_filter") {
     findMethod {
         matcher {
-            declaredClass(fragment.name)
-            modifiers(Modifier.STATIC or Modifier.PRIVATE or Modifier.FINAL)
-            paramCount(3)
-            paramTypes(adapter.name, "java.lang.String", null)
+            declaredClass(adapter.name)
+            paramTypes(null, "java.lang.String", "java.lang.String", null, "int", "com.dcinside.app.response.PostHead")
         }
     }.one("search.response_filter").descriptor
 }.toMethod()
+
+/** 검색과 갤 목록이 공유하는 목록 응답 모델: 검색 어댑터의 응답 진입 첫 인자. */
+internal fun listResponse(): Class<*> = searchResponseFilter(searchAdapter()).parameterTypes[0]
 
 // endregion
 
@@ -80,7 +76,7 @@ internal val autoContinueSearch = Patch(
 ) {
     val adapter = searchAdapter()
     // 호스트 자체 클래스: 모듈은 androidx에 의존하지 않음.
-    val holder = $$"androidx.recyclerview.widget.RecyclerView$ViewHolder".toClass()
+    val holder = adapter.getMethod("onCreateViewHolder", ViewGroup::class.java, Int::class.javaPrimitiveType).returnType
     val bind = adapter.declaredMethods.single {
         it.returnType == Void.TYPE && it.parameterTypes.contentEquals(arrayOf(holder, Int::class.javaPrimitiveType)) && !it.isBridge
     }
@@ -148,15 +144,17 @@ internal val searchByIdentifier = Patch(
     title = "식별코드, IP 검색",
     summary = "검색 타입 셀렉트 박스의 식별코드, IP 항목을 고르거나 검색창에 id:식별코드, ip:IP를 입력하면 작성자 검색 뒤 그 사용자의 글만 남깁니다. 값은 부분 일치로 찾습니다. 식별코드는 식별코드 표시 기능이나 갤로그 주소에서, IP는 닉네임 옆의 값(보통 앞 두 자리)을 씁니다. ip: 뒤에는 띄어쓰기와 닉네임을 붙일 수 있고, 없으면 ㅇㅇ로 검색합니다. 디시 검색이 닉네임 기준이라 닉네임을 바꾼 옛 글은 찾지 못합니다.",
 ) {
-    val fragment = searchFragment()
     val adapter = searchAdapter()
-    val starter = searchStarter(fragment)
+    val (starter, fragment) = searchStarterWithFragment(adapter)
     val postItem = "com.dcinside.app.response.PostItem".toClass()
     val userId = serializedGetters(postItem, "user_id").first()
     val ip = serializedGetters(postItem, "ip").first()
-    val filter = searchResponseFilter(fragment, adapter)
-    val gallList = serializedGetters(filter.parameterTypes[2], "gall_list").first()
-    val typeS = "com.dcinside.app.type.S".toClass()
+    val filter = searchResponseFilter(adapter)
+    val gallList = serializedGetters(filter.parameterTypes[0], "gall_list").first()
+    // 검색 타입 enum(구 type.S): 시작점이 호출하는 11파라미터 목록 API의 네 번째 파라미터.
+    val typeS = Dex.cached("search.type_enum") {
+        methodData(starter).invokes.first { it.paramCount == 11 }.paramTypeNames[3]
+    }.toClass()
     val nameType = typeS.enumConstants?.first { (it as Enum<*>).name == "NAME" }!!
     val typeField = fragment.declaredFields.first { it.type == typeS }.apply { isAccessible = true }
     val keywordFields = fragment.declaredFields.filter {
@@ -212,10 +210,10 @@ internal val searchByIdentifier = Patch(
         v != null && f.value.isNotEmpty() && v.contains(f.value, ignoreCase = true)
     } ?: true
 
-    // 모든 응답은 프래그먼트의 차단 사용자 필터를 거침; gall_list에서 일치하지 않는 게시글을 제자리에서
+    // 모든 응답은 어댑터의 응답 진입을 거침; gall_list에서 일치하지 않는 게시글을 제자리에서
     // 버리면 필터, 렌더러, 계속 검색 카운터가 모두 그 결과를 읽음.
     filter.before { chain ->
-        val response = chain.getArg(2) ?: return@before
+        val response = chain.getArg(0) ?: return@before
         if (identifier == null) return@before
         runCatching {
             @Suppress("UNCHECKED_CAST")

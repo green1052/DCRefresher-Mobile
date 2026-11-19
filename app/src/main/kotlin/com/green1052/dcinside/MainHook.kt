@@ -31,6 +31,7 @@ class MainHook : XposedModule() {
 
         val info = param.applicationInfo
         dataDir = File(info.dataDir)
+        hostApk = info.sourceDir
         // 패치는 앱의 모든 프로세스(푸시, 동기화, ...)에 적용, 토스트는 메인 프로세스에서만 표시.
         val main = Application.getProcessName() == TARGET_PACKAGE
         // 설정 변경 시(원격 프리퍼런스 리스너) 앱의 모든 프로세스가 스스로 종료되어, 다음 실행에서 모든 설정을

@@ -200,7 +200,7 @@ private fun activityBadge(id: String, low: Int): String {
 
 private val recyclerView by lazy { "androidx.recyclerview.widget.RecyclerView".toClass() }
 private val getAdapter by lazy { recyclerView.getMethod("getAdapter") }
-private val adapterType by lazy { $$"androidx.recyclerview.widget.RecyclerView$Adapter".toClass() }
+private val adapterType by lazy { getAdapter.returnType }
 private val getItemCount by lazy { adapterType.getMethod("getItemCount") }
 private val notifyItemRangeChanged by lazy {
     adapterType.getMethod("notifyItemRangeChanged", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)

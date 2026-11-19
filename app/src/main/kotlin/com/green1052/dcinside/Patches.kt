@@ -4,8 +4,18 @@ import org.luckypray.dexkit.query.enums.StringMatchType
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-/** 앱의 R 클래스에서 가져온 리소스 id; R8이 필드 이름과 함께 남겨 둠. */
-internal fun res(type: String, name: String) = $$"com.dcinside.app.R$$$type".toClass().getField(name).getInt(null)
+/** 호스트 APK의 리소스. 5.3.25부터 R8이 R 클래스를 지워서, APK를 직접 열어 getIdentifier로 조회.
+ *  AssetManager 생성은 숨겨진 API라 모듈 프로세스(LSPosed)에서만 동작, 실패하면 패치가 보이게 실패. */
+private val hostRes by lazy {
+    val am = android.content.res.AssetManager::class.java.getDeclaredConstructor().newInstance()
+    android.content.res.AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
+        .apply { isAccessible = true }.invoke(am, hostApk)
+    @Suppress("DEPRECATION") android.content.res.Resources(am, null, null)
+}
+
+/** 앱의 리소스 id; resources.arsc에는 이름이 그대로 남음. */
+internal fun res(type: String, name: String) = hostRes.getIdentifier(name, type, TARGET_PACKAGE)
+    .also { check(it != 0) { "no $type resource named $name" } }
 
 /** [name]으로 직렬화되는 Gson 필드의 getter들(Kotlin 데이터 클래스는 두 개: getX와 componentN). */
 internal fun serializedGetters(cls: Class<*>, name: String): List<Method> =
