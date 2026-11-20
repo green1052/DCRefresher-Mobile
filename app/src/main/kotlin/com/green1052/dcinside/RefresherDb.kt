@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
-import org.luckypray.dexkit.query.enums.StringMatchType
 import java.io.File
 import java.lang.reflect.Modifier
 import java.net.HttpURLConnection
@@ -135,33 +134,36 @@ internal val showIpInfo = Patch(
     summary = "유동(비로그인) 작성자의 IP 옆에 VPN, 통신사 등 대역 정보를 표시합니다.",
 ) {
     // 모델의 IP getter가 아님: 5.3.6에선 이들이 사용자 메모 조회와 차단 목록에도 쓰임. 앱이 그리는 모든 "(ip)"
-    // (게시글 목록, 검색, 게시글 헤더, 댓글, 더보기, 캡처)는 이름 줄 span 빌더(context, name, nickname, flag, ip,
-    // ..., user_id, ...) 안에서 찾은 하나의 헬퍼 trim(ip, ".*")를 거침.
+    // (게시글 목록, 검색, 게시글 헤더, 댓글, 더보기, 캡처)는 이름 줄 빌더(context, name, 고정닉, ip, ..., flag)가
+    // 부르는 한 줄짜리 trim(ip)(끝의 '.'와 '*' 제거)을 거침.
     dbLoader
     styleBadges()
+    // 5.3.25: 빌더가 y3b.i(Context, String, boolean, ip, user_id?, Boolean, int)로 바뀜.
     val nameLine = findMethod("ip.name_line") {
         matcher {
             modifiers(Modifier.STATIC)
-            returnType("android.text.Spannable")
+            returnType("android.text.SpannableStringBuilder")
             paramTypes(
-                "android.content.Context", "java.lang.String", "java.lang.String", "boolean", "java.lang.String",
-                null, null, "java.lang.String", "java.lang.Boolean", "boolean",
+                "android.content.Context", "java.lang.String", "boolean", "java.lang.String", "java.lang.String",
+                "java.lang.Boolean", "int",
             )
         }
     }
     val trim = Dex.cached("ip.trim") {
         methodData(nameLine).invokes.filter {
-            it.paramTypeNames == listOf("java.lang.String", "java.lang.String") && it.returnTypeName == "java.lang.String"
+            it.paramTypeNames == listOf("java.lang.String") && it.returnTypeName == "java.lang.String"
         }.map { it.descriptor }.distinct().one("ip.trim")
     }
-    // 컴파일된 호출부가 훅을 넘어 인라인할 수 있는 작은 static 헬퍼. 호출부가 약 70개라 IP 것(".*" 전달)만
-    // 디옵티마이즈.
+    // 컴파일된 호출부가 훅을 넘어 인라인할 수 있는 작은 static 헬퍼. 호출부는 전부 작성자/IP 줄 빌더.
     cachedLines("ip.trim_callers") {
-        findMethod { matcher { addInvoke(trim); usingStrings(listOf(".*"), StringMatchType.Equals) } }.map { it.descriptor }
+        findMethod { matcher { addInvoke(trim) } }.map { it.descriptor }
     }.forEach { deoptimize(it.toExecutable()) }
     trim.toMethod().after { chain, ip ->
-        if (chain.getArg(1) != ".*" || ip !is String) ip else ipLabel(ip)?.let { ip + it } ?: ip
+        if (ip !is String || !IP_SHAPE.matches(ip)) ip else ipLabel(ip)?.let { ip + it } ?: ip
     }
 }
+
+/** 마스킹된 ip("1.2.*.*")도 trim 뒤엔 점두어만 남으므로 2~4개 옥텟으로 배지 판별. */
+private val IP_SHAPE = Regex("""\d{1,3}(?:\.\d{1,3}){1,3}""")
 
 // endregion

@@ -1,7 +1,6 @@
 package com.green1052.dcinside
 
 import android.view.View
-import org.luckypray.dexkit.query.enums.StringMatchType
 import java.lang.reflect.Method
 
 // region 목록
@@ -26,7 +25,7 @@ private fun galleryPosts(handler: Method) = serializedGetters(handler.parameterT
 internal val hideOfficialNotices = Patch(
     key = "hide_official_notices",
     title = "운영자 공지 숨기기",
-    summary = "갤러리와 미니 갤러리 공지에서 디시인사이드 운영자 공지를 숨깁니다.",
+    summary = "갤러리 공지에서 디시인사이드 운영자 공지를 숨깁니다.",
     default = false,
 ) {
     val postItem = "com.dcinside.app.response.PostItem".toClass()
@@ -42,15 +41,7 @@ internal val hideOfficialNotices = Patch(
             runCatching { (posts.invoke(chain.getArg(0)) as MutableList<Any?>).removeAll { official(it) } }
         }
     }
-
-    // 미니 갤러리 공지 어댑터: setItems(posts, lastRead, galleryId).
-    findMethod("notice.mini_items") {
-        matcher {
-            returnType("void")
-            paramTypes("java.util.List", "long", "java.lang.String")
-            usingStrings(listOf("item", "gallId"), StringMatchType.Equals)
-        }
-    }.hook { chain -> chain.proceedWithArg(0, (chain.getArg(0) as List<*>).filterNot { official(it) }) }
+    // 5.3.25: 미니 갤러리 공지 어댑터(setItems)가 사라져 미니 갤러리는 그대로 둠.
 }
 
 internal val hidePageIndicators = Patch(

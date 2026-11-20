@@ -59,10 +59,10 @@ internal val showIdentifier = Patch(
         }
     }
     // 게시글 헤더와 게시글/검색 목록 바인더: 이름을 읽고 헤더의 작성자 span 빌더
-    // (TextView를 받는 Spannable 빌더)를 호출하는 모든 곳.
+    // (TextView를 받는 SpannableStringBuilder 빌더)를 호출하는 모든 곳.
     cachedLines("identifier.author_lines") {
         val span = methodData(header).invokes.single {
-            it.returnTypeName == "android.text.Spannable" && it.paramTypeNames.firstOrNull() == "android.widget.TextView"
+            it.returnTypeName == "android.text.SpannableStringBuilder" && it.paramTypeNames.firstOrNull() == "android.widget.TextView"
         }.descriptor
         nameGetters.values.flatten().flatMap { getter ->
             findMethod { matcher { addInvoke(span); addInvoke(methodData(getter).descriptor) } }.map { it.descriptor }

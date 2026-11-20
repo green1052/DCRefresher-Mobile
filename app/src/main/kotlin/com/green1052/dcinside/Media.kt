@@ -104,21 +104,27 @@ private val cleanUploads = Patch(
         chain.proceedWithArg(2, UUID.randomUUID().toString() + if (ext.isEmpty()) "" else ".$ext")
     }
 
-    // 요청 본문 팩토리(파일, 진행 리스너), 미디어 타입마다 하나; 파일은 전송 시점에 읽힘.
-    for (type in listOf("image/jpg", "video/mp4", "audio/m4a")) findMethod("upload.body.$type") {
-        matcher {
-            modifiers(Modifier.STATIC)
-            returnType("okhttp3.RequestBody")
-            paramTypes("java.io.File", null)
-            usingStrings(listOf(type), StringMatchType.Equals)
-        }
-    }.hook { chain ->
+    // 요청 본문 팩토리(파일[, 진행 리스너]), 미디어 타입마다 하나; 파일은 전송 시점에 읽힘.
+    // 5.3.25: audio/m4a 팩토리는 단일 File 파라미터, video/mp4 팩토리는 사라짐(okhttp API를 직접 호출).
+    listOf(
+        "image/jpg" to arrayOf("java.io.File", null),
+        "audio/m4a" to arrayOf("java.io.File"),
+    ).forEach { (type, params) ->
+        findMethod("upload.body.$type") {
+            matcher {
+                modifiers(Modifier.STATIC)
+                returnType("okhttp3.RequestBody")
+                paramTypes(*params)
+                usingStrings(listOf(type), StringMatchType.Equals)
+            }
+        }.hook { chain ->
         val file = chain.getArg(0) as? File ?: return@hook chain.proceed()
         val clean = runCatching { cleanUpload(file, File(app.cacheDir, "dcrefresher_uploads"), webpQuality.takeIf { type == "image/jpg" }) }
             .onFailure { log("upload metadata not removed: $file", it) }.getOrNull()
         // 확장자 없는 파일: null, 파트 훅이 이름의 확장자로 폴백.
         uploadExtension.set((clean ?: file).extension.lowercase().ifEmpty { null })
         if (clean == null) chain.proceed() else chain.proceedWithArg(0, clean)
+        }
     }
 }
 

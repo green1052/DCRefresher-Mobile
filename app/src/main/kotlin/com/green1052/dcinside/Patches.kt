@@ -2,7 +2,6 @@ package com.green1052.dcinside
 
 import org.luckypray.dexkit.query.enums.StringMatchType
 import java.lang.reflect.Method
-import java.lang.reflect.Modifier
 
 /** 호스트 APK의 리소스. 5.3.25부터 R8이 R 클래스를 지워서, APK를 직접 열어 getIdentifier로 조회.
  *  AssetManager 생성은 숨겨진 API라 모듈 프로세스(LSPosed)에서만 동작, 실패하면 패치가 보이게 실패. */
@@ -34,9 +33,9 @@ private val disableUpdatePopup = Patch(
     summary = "새 버전 업데이트를 권하는 팝업을 띄우지 않습니다.",
 ) {
     // 홈의 "스토어 버전이 더 최신인가(최근에 닫지 않았나)" 검사; 버전을 "\."로 분리.
+    // 5.3.25: 메서드가 public static으로 바뀌어 수정자 조건 제거.
     findMethod("update.is_newer") {
         matcher {
-            modifiers(Modifier.PRIVATE or Modifier.FINAL)
             returnType("boolean")
             paramTypes("java.lang.String")
             usingStrings(listOf("\\."), StringMatchType.Equals)

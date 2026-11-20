@@ -10,12 +10,20 @@ import java.lang.reflect.Modifier
 // DCInside 5.3.25 기준 분석. 전면 R8 난독화로 앱 패키지와 R 클래스가 사라짐; Remote Config 키와
 // 레이아웃 때문에 남은 뷰 클래스로 찾음. 광고는 AdMob 미디에이션 + 네이버 GFP로 재편됨.
 
-/** DCInside config 객체의 Remote Config getter: [key]를 읽는 유일한 메서드. */
-internal fun configGetter(key: String, type: String) = findMethod("config.$key") {
+/** 앱의 Remote Config 접근 클래스(5.3.25): 모든 키가 static getter b(String):List(광고 슬롯)이나
+ *  d(String):boolean 등을 거침. c()가 "warning_adult_config"를 쓰는 유일한 무인수 List getter라 여기서 발견. */
+internal fun configClass() = findMethod("config.class") {
     matcher {
-        returnType(type)
+        returnType("java.util.List")
         paramCount(0)
-        usingStrings(listOf(key), StringMatchType.Equals)
+        usingStrings(listOf("warning_adult_config"), StringMatchType.Equals)
+    }
+}.declaringClass
+
+/** 설정 getter d(key)가 [keys] 중 하나면 false를 반환하게. 여러 패치가 조건부로 같은 메서드에 설치. */
+internal fun configFalse(vararg keys: String) {
+    configClass().getDeclaredMethod("d", String::class.java).hook { chain ->
+        if (chain.getArg(0) in keys) false else chain.proceed()
     }
 }
 
@@ -25,31 +33,19 @@ private val blockAds = Patch(
     title = "광고 차단",
     summary = "홈, 글 목록, 본문, 댓글, 검색의 배너와 네이티브 광고를 불러오지 않습니다.",
 ) {
-    // 광고 폭포수의 마스터 스위치: 5.3.25의 ad_configs(Remote Config). 반환 타입이 바뀌어도 무해하게
-    // 타입별 빈 값으로 치환. 빈 설정은 앱 자체의 "설정된 광고 없음" 상태라 홈 피드에 광고 행이 추가되지 않음.
-    val adConfigs = findMethod("ads.ad_configs") {
-        matcher {
-            paramCount(0)
-            usingStrings(listOf("ad_configs"), StringMatchType.Equals)
-        }
+    // 광고 슬롯 설정(fw9.b): 키가 onestore_ad_*/ad_naver_*면 빈 목록을 반환 = 앱 자체의
+    // "설정된 광고 없음" 상태라 광고 행이 추가되지 않음.
+    configClass().getDeclaredMethod("b", String::class.java).hook { chain ->
+        val key = chain.getArg(0) as? String
+        if (key != null && (key.startsWith("onestore_ad_") || key.startsWith("ad_naver_"))) ArrayList<Any?>()
+        else chain.proceed()
     }
-    adConfigs.hook { chain ->
-        when (adConfigs.returnType) {
-            String::class.java -> ""
-            Boolean::class.javaPrimitiveType -> false
-            List::class.java -> ArrayList<Any?>()
-            else -> chain.proceed() // 파싱된 객체 등 알 수 없는 타입은 그대로 두고 DNS 차단에 맡김.
-        }
-    }
-
-    // 상시 광고 스위치.
-    configGetter("_persistent_ad_enabled", "boolean").replace(false)
 
     // AdFit 배너, 생성되는 모든 위치.
     "com.kakao.adfit.ads.ba.BannerAdView".toClass().getMethod("loadAd").replace(null)
 
-    // "_read_like_bottom_ad_enable": 게시글 좋아요 버튼 아래 광고 행.
-    configGetter("_read_like_bottom_ad_enable", "boolean").replace(false)
+    // 게시글 좋아요 버튼 아래 광고 행(구 _read_like_bottom_ad_enable).
+    configFalse("onestore_read_like_bottom_ad_enable")
 
     // 게시글 목록 하단 퀵 배너 띠(50dp)와 구분선; 앱은 이들을 숨기기만 함. fragment_post_list만
     // 이들을 담고 그 바인딩이 id로 inflate하므로, 다른 inflate는 int 비교 한 번이면 됨.
@@ -148,8 +144,8 @@ private val disableCrashReports = Patch(
             paramCount(0)
         }
     }.replace(false)
-    // 5.3.25에서 report_crash_on_bus 키는 사라짐.
-    listOf("list", "read", "web").forEach { configGetter("report_crash_on_$it", "boolean").replace(false) }
+    // 앱 자체 오류 기록 전송(5.3.25: fw9.d로 이동).
+    configFalse("report_crash_on_list", "report_crash_on_read", "report_crash_on_web")
 }
 
 private val disablePerformance = Patch(
@@ -157,8 +153,8 @@ private val disablePerformance = Patch(
     title = "성능 측정 비활성화",
     summary = "Firebase Performance의 화면과 네트워크 성능 수집을 끕니다.",
 ) {
-    // 앱이 이 플래그를 FirebasePerformance.setPerformanceCollectionEnabled에 전달.
-    configGetter("performance_enable", "boolean").replace(false)
+    // 앱이 이 플래그를 FirebasePerformance.setPerformanceCollectionEnabled에 전달(5.3.25: fw9.d로 이동).
+    configFalse("performance_enable")
 }
 
 // endregion

@@ -5,14 +5,15 @@ plugins {
 
 android {
     namespace = "com.green1052.dcinside"
-    compileSdk = 37
+    // Compose 1.13(AAR 메타데이터)이 37.1+를 요구; 9.5 DSL은 부 버전 compileSdk가 없어 이름으로 지정.
+    compileSdkVersion("android-37.1")
 
     defaultConfig {
         applicationId = "com.green1052.dcinside"
         minSdk = 29
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 1
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
