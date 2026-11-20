@@ -1,6 +1,5 @@
 package com.green1052.dcinside
 
-import android.os.Bundle
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.query.enums.StringMatchType
@@ -117,15 +116,15 @@ fun disableAnalyticsCollection(key: String) = findMethod(key) {
     }
 }.replace(3)
 
-/** FirebaseAnalytics.logEvent(String, Bundle) 제거. R8이 이름을 유지했으면 이름으로, 아니면 유일한 인스턴스 void (String, Bundle) 메서드로 탐색. */
+/** FirebaseAnalytics의 남은 인스턴스 void (String, String) API(유저 프로퍼티 등)를 무력화.
+ *  5.3.25: R8이 logEvent(String, Bundle)를 제거함 — 이벤트 수집 자체는 disableAnalyticsCollection과
+ *  추적 호스트 차단으로 끊기므로 매치가 없으면 조용히 넘어간다. */
 fun disableFirebaseLogEvent() {
     val analytics = "com.google.firebase.analytics.FirebaseAnalytics".toClass()
-    val logEvent = runCatching { analytics.getMethod("logEvent", String::class.java, Bundle::class.java) }.getOrNull()
-        ?: analytics.declaredMethods.single {
-            !Modifier.isStatic(it.modifiers) && it.returnType == Void.TYPE &&
-                it.parameterTypes.contentEquals(arrayOf(String::class.java, Bundle::class.java))
-        }
-    logEvent.replace(null)
+    analytics.declaredMethods.filter {
+        !Modifier.isStatic(it.modifiers) && it.returnType == Void.TYPE &&
+            it.parameterTypes.contentEquals(arrayOf(String::class.java, String::class.java))
+    }.forEach { it.replace(null) }
 }
 
 // endregion

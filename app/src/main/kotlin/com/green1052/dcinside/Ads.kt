@@ -27,12 +27,28 @@ internal fun configFalse(vararg keys: String) {
     }
 }
 
+/** 설정 getter d(key)가 [key]면 [value]를 반환하게. 앱의 스킵 조건이 true인 키용. */
+internal fun configForce(key: String, value: Boolean) {
+    configClass().getDeclaredMethod("d", String::class.java).hook { chain ->
+        if (chain.getArg(0) == key) value else chain.proceed()
+    }
+}
+
 // region 광고
 private val blockAds = Patch(
     key = "block_ads",
     title = "광고 차단",
     summary = "홈, 글 목록, 본문, 댓글, 검색의 배너와 네이티브 광고를 불러오지 않습니다.",
 ) {
+    // 광고 렌더 팩토리(hge.J의 구현체 er2/vc7): 모든 광고 뷰가 이 메서드로 만들어짐. fw9.b를
+    // 우회하는 하드코딩 DC/HIDER 슬롯(목록 첫 줄 분할 광고)까지 빈 목록으로 차단됨.
+    findMethods("ad.renderer") {
+        matcher {
+            paramTypes("android.view.ViewGroup", "java.util.List", null, null)
+            returnType("java.util.ArrayList")
+        }
+    }.filterNot { Modifier.isAbstract(it.modifiers) }.forEach { it.replace(ArrayList<Any?>()) }
+
     // 광고 슬롯 설정(fw9.b): 키가 onestore_ad_*/ad_naver_*면 빈 목록을 반환 = 앱 자체의
     // "설정된 광고 없음" 상태라 광고 행이 추가되지 않음.
     configClass().getDeclaredMethod("b", String::class.java).hook { chain ->
@@ -44,8 +60,9 @@ private val blockAds = Patch(
     // AdFit 배너, 생성되는 모든 위치.
     "com.kakao.adfit.ads.ba.BannerAdView".toClass().getMethod("loadAd").replace(null)
 
-    // 게시글 좋아요 버튼 아래 광고 행(구 _read_like_bottom_ad_enable).
-    configFalse("onestore_read_like_bottom_ad_enable")
+    // 게시글 좋아요 버튼 아래 광고 행(구 _read_like_bottom_ad_enable): 앱은 이 플래그가
+    // true일 때 렌더를 스킵하므로 true로 치환해야 숨겨짐.
+    configForce("onestore_read_like_bottom_ad_enable", true)
 
     // 게시글 목록 하단 퀵 배너 띠(50dp)와 구분선; 앱은 이들을 숨기기만 함. fragment_post_list만
     // 이들을 담고 그 바인딩이 id로 inflate하므로, 다른 inflate는 int 비교 한 번이면 됨.
