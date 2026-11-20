@@ -3,6 +3,7 @@ package com.green1052.dcinside
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import org.luckypray.dexkit.query.enums.StringMatchType
 import java.lang.reflect.Modifier
@@ -35,19 +36,41 @@ internal fun configForce(key: String, value: Boolean) {
 }
 
 // region 광고
+/** 광고 컨테이너로 쓰인 뷰들. 렌더 훅에서 GONE으로 접고, RecyclerView 항목 루트는 측정 높이도 0으로. */
+@Volatile
+private var adContainers = emptyArray<View>()
+
 private val blockAds = Patch(
     key = "block_ads",
     title = "광고 차단",
     summary = "홈, 글 목록, 본문, 댓글, 검색의 배너와 네이티브 광고를 불러오지 않습니다.",
 ) {
     // 광고 렌더 팩토리(hge.J의 구현체 er2/vc7): 모든 광고 뷰가 이 메서드로 만들어짐. fw9.b를
-    // 우회하는 하드코딩 DC/HIDER 슬롯(목록 첫 줄 분할 광고)까지 빈 목록으로 차단됨.
+    // 우회하는 하드코딩 DC/HIDER 슬롯(목록 첫 줄 분할 광고)까지 빈 목록으로 차단됨. 첫 인자가
+    // 광고를 담을 컨테이너인데 앱은 여기에 INVISIBLE(파워링크)이나 최소 높이(홈 배너 100dp)를
+    // 남기므로 GONE으로 접는다(앱의 빈 슬롯 처리와 동일).
     findMethods("ad.renderer") {
         matcher {
             paramTypes("android.view.ViewGroup", "java.util.List", null, null)
             returnType("java.util.ArrayList")
         }
-    }.filterNot { Modifier.isAbstract(it.modifiers) }.forEach { it.replace(ArrayList<Any?>()) }
+    }.filterNot { Modifier.isAbstract(it.modifiers) }.forEach {
+        it.hook { chain ->
+            (chain.getArg(0) as? View)?.let { c ->
+                if (c !in adContainers) adContainers += c
+                c.visibility = View.GONE
+            }
+            ArrayList<Any?>()
+        }
+    }
+    // RecyclerView는 GONE 항목도 측정된 크기로 배치하므로, 컨테이너가 항목 루트(홈 배너 pg6=FrameLayout,
+    // 파워링크 ad7=LinearLayout)면 측정을 0x0으로 교체. hideAdViews의 본문 뷰 처리와 같은 방식.
+    val int = Int::class.javaPrimitiveType
+    listOf(LinearLayout::class.java, FrameLayout::class.java).forEach { c ->
+        c.getDeclaredMethod("onMeasure", int, int).hook { chain ->
+            if (chain.thisObject in adContainers) (chain.thisObject as View).collapse() else chain.proceed()
+        }
+    }
 
     // 광고 슬롯 설정(fw9.b): 키가 onestore_ad_*/ad_naver_*면 빈 목록을 반환 = 앱 자체의
     // "설정된 광고 없음" 상태라 광고 행이 추가되지 않음.
